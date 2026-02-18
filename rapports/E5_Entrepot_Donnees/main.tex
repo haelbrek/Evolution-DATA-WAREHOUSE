@@ -1,0 +1,1854 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% RAPPORT E5 - Mise en place d'un Entrepôt de Données
+% Projet Data Engineering - Région Hauts-de-France
+% Auteur: [Votre Nom]
+% Date: Janvier 2026
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[12pt,a4paper,french]{article}
+
+% ============== PACKAGES ==============
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows, positioning, fit}
+\usepackage{placeins} % \FloatBarrier pour éviter que les tableaux/figures se "baladent"
+\usepackage{float}    % option [H] et \floatplacement
+\usepackage{etoolbox} % hooks (AtBegin/AtEndEnvironment)
+
+% Forcer les flottants à rester "ici" (évite l’empilement de titres quand LaTeX déplace les tables)
+\floatplacement{table}{H}
+\floatplacement{figure}{H}
+
+% Ajoute automatiquement un \FloatBarrier après chaque figure
+\AtEndEnvironment{figure}{\FloatBarrier}
+
+% ============== CONFIGURATION ==============
+\geometry{
+    top=2.5cm,
+    bottom=2.5cm,
+    left=2.5cm,
+    right=2.5cm
+}
+
+% Couleurs personnalisées
+\definecolor{azure}{RGB}{0, 127, 255}
+\definecolor{darkblue}{RGB}{0, 51, 102}
+\definecolor{lightgray}{RGB}{245, 245, 245}
+\definecolor{codegreen}{RGB}{0, 128, 0}
+\definecolor{codegray}{RGB}{128, 128, 128}
+
+% Configuration des liens
+\hypersetup{
+    colorlinks=true,
+    linkcolor=darkblue,
+    urlcolor=azure,
+    citecolor=darkblue,
+    pdftitle={E5 - Entrepôt de Données},
+    pdfauthor={Votre Nom}
+}
+
+% Configuration des listings (code)
+\lstset{
+    backgroundcolor=\color{lightgray},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    captionpos=b,
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{azure}\bfseries,
+    stringstyle=\color{codegray},
+    frame=single,
+    framerule=0pt,
+    xleftmargin=0.5cm,
+    xrightmargin=0.5cm
+}
+
+% En-tête et pied de page
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\leftmark}
+\fancyhead[R]{E5 - Entrepôt de Données}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% ============== DÉBUT DU DOCUMENT ==============
+\begin{document}
+
+% ============== PAGE DE TITRE ==============
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+
+    {\Huge\bfseries Rapport Professionnel E5\par}
+    \vspace{0.5cm}
+    {\LARGE Mise en place d'un Entrepôt de Données\par}
+
+    \vspace{1.5cm}
+
+    {\large Projet Data Engineering\par}
+    {\large Analyse Territoriale - Région Hauts-de-France\par}
+
+    \vspace{2cm}
+
+    % Logo ou image (à ajouter)
+    % \includegraphics[width=0.4\textwidth]{logo.png}
+
+    \vspace{2cm}
+
+    {\Large\bfseries Compétences évaluées :\par}
+    \vspace{0.5cm}
+    \begin{tabular}{ll}
+        \textbf{C13} & Modéliser la structure des données d'un entrepôt \\
+        \textbf{C14} & Créer un entrepôt de données \\
+        \textbf{C15} & Intégrer les ETL en entrée et sortie \\
+    \end{tabular}
+
+    \vfill
+
+    {\large
+    \begin{tabular}{rl}
+        \textbf{Auteur :} & [Votre Nom] \\
+        \textbf{Formation :} & Data Engineer \\
+        \textbf{Date :} & Janvier 2026 \\
+    \end{tabular}
+    \par}
+
+\end{titlepage}
+
+% ============== TABLE DES MATIÈRES ==============
+\newpage
+\tableofcontents
+\newpage
+
+% ============== INTRODUCTION ==============
+\section{Introduction}
+
+\subsection{Contexte du projet}
+
+Ce rapport présente la mise en place d'un entrepôt de données (Data Warehouse) dans le cadre d'un projet d'analyse territoriale de la région \textbf{Hauts-de-France}. Le projet s'inscrit dans une démarche d'aide à la décision stratégique basée sur l'exploitation de données publiques issues de l'INSEE.
+
+L'infrastructure technique repose sur un pipeline ETL développé en \textbf{Python} qui transforme les données sources stockées localement (fichiers CSV et JSON) et les charge dans une base \textbf{Azure SQL Database} structurée en entrepôt de données optimisé pour les requêtes analytiques.
+
+\subsection{Objectifs du projet}
+
+Les objectifs principaux de ce projet sont :
+
+\begin{itemize}[leftmargin=*]
+    \item Centraliser les données territoriales dans un entrepôt de données structuré
+    \item Modéliser les données selon les bonnes pratiques (schéma en étoile)
+    \item Mettre en place des ETL robustes pour alimenter l'entrepôt
+    \item Permettre aux équipes analytiques d'accéder facilement aux données
+    \item Garantir la qualité et la cohérence des données
+\end{itemize}
+
+\subsection{Périmètre géographique}
+
+Le périmètre couvre la région \textbf{Hauts-de-France} composée de 5 départements :
+
+\begin{table}[h]
+\centering
+\begin{tabular}{cll}
+\toprule
+\textbf{Code} & \textbf{Département} & \textbf{Préfecture} \\
+\midrule
+02 & Aisne & Laon \\
+59 & Nord & Lille \\
+60 & Oise & Beauvais \\
+62 & Pas-de-Calais & Arras \\
+80 & Somme & Amiens \\
+\bottomrule
+\end{tabular}
+\caption{Départements de la région Hauts-de-France}
+\end{table}
+
+% ============== SECTION 1 : DONNÉES ==============
+\section{Inventaire des Données pour les Analyses}
+
+\subsection{Vue d'ensemble des sources}
+
+Les données proviennent principalement de l'\textbf{INSEE} (Institut National de la Statistique et des Études Économiques) et de l'\textbf{API Géo} du gouvernement français. Les fichiers sources sont stockés localement et comprennent \textbf{11 fichiers CSV} totalisant \textbf{15 394 enregistrements} et \textbf{1 fichier JSON} avec \textbf{3 782 communes}.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lrr}
+\toprule
+\textbf{Type de données} & \textbf{Nombre de fichiers} & \textbf{Total lignes} \\
+\midrule
+Données démographiques & 4 & 2 002 \\
+Données économiques & 3 & 12 664 \\
+Données sociales & 4 & 729 \\
+Données géographiques & 1 & 3 782 communes \\
+\midrule
+\textbf{TOTAL} & \textbf{12} & \textbf{19 177} \\
+\bottomrule
+\end{tabular}
+\caption{Synthèse des volumes de données}
+\end{table}
+
+\subsection{Sources de données identifiées}
+
+\subsubsection{Données démographiques}
+
+\begin{longtable}{p{4.5cm}p{7cm}r}
+\toprule
+\textbf{Fichier source} & \textbf{Description} & \textbf{Lignes} \\
+\midrule
+\endhead
+population hauts\_de\_france.csv & Population par PCS (Professions et Catégories Socioprofessionnelles), sexe et tranche d'âge. Années : 2010, 2015, 2021 & 1 579 \\
+naissances hauts\_de\_france.csv & Naissances vivantes annuelles par département (code EC\_MEASURE=LVB). Période : 2014-2023 & 51 \\
+DECES hauts\_de\_france.csv & Décès annuels par département (code EC\_MEASURE=DTH). Période : 2014-2023 & 51 \\
+FECONDITE hauts\_de\_france.csv & Indicateurs de fécondité et structure familiale (nombre d'enfants, type de famille). Années : 2010, 2015, 2021 & 321 \\
+\bottomrule
+\caption{Sources de données démographiques - Volume exact}
+\end{longtable}
+
+\subsubsection{Données économiques}
+
+\begin{longtable}{p{4.5cm}p{7cm}r}
+\toprule
+\textbf{Fichier source} & \textbf{Description} & \textbf{Lignes} \\
+\midrule
+\endhead
+CREATION\_ENT hauts\_de\_france.csv & Créations d'entreprises par secteur d'activité (NAF) et forme juridique. Mesures : BURE (entreprises), UNIT\_LOC\_BURE (établissements). Période : 2012-2024 & 10 757 \\
+CREA\_EI hauts\_de\_france.csv & Créations d'entrepreneurs individuels par sexe, âge et forme juridique (MICRO, ENTIND). Période : 2012-2024 & 1 561 \\
+EMPLOI\_CHOMAGE hauts\_de\_france.csv & Population active par statut d'emploi (EMPSTA\_ENQ : 1=emploi, 2=chômage) et PCS. Tranche d'âge : 15-64 ans & 346 \\
+\bottomrule
+\caption{Sources de données économiques - Volume exact}
+\end{longtable}
+
+\subsubsection{Données sociales}
+
+\begin{longtable}{p{4.5cm}p{7cm}r}
+\toprule
+\textbf{Fichier source} & \textbf{Description} & \textbf{Lignes} \\
+\midrule
+\endhead
+DS\_FILOSOFI hauts\_de\_france.csv & Indicateurs FILOSOFI : revenus (D1, D9, médiane), taux de pauvreté (PR\_MD60), structure des revenus. Année : 2021 & 101 \\
+FILOSOFI\_AGE TP\_NIVVIE.csv & FILOSOFI ventilé par tranche d'âge du référent fiscal. Indicateurs : revenu médian, taux de pauvreté & 71 \\
+Logement hauts\_de\_france.csv & Résidences principales par statut de surpeuplement (OVEROCC : 0=normal, 1=surpeuplé). Années : 2010, 2015, 2021 & 46 \\
+Menage hauts\_de\_france.csv & Structure des ménages par type (TPH), PCS du référent et taille. Mesures : DWELLINGS, DWELLINGS\_POPSIZE & 511 \\
+\bottomrule
+\caption{Sources de données sociales - Volume exact}
+\end{longtable}
+
+\subsubsection{Données géographiques}
+
+\begin{longtable}{p{4.5cm}p{7cm}r}
+\toprule
+\textbf{Fichier source} & \textbf{Description} & \textbf{Lignes} \\
+\midrule
+\endhead
+communes.json & Référentiel des communes avec : nom, code INSEE, codes postaux, population, surface (ha), coordonnées (longitude, latitude), contours GeoJSON. Source : API geo.api.gouv.fr & 3 782 \\
+\bottomrule
+\caption{Sources de données géographiques}
+\end{longtable}
+
+\subsection{Dictionnaire des données}
+
+Cette section détaille la structure de chaque source de données.
+
+\subsubsection{Structure des fichiers CSV}
+
+\textbf{1. population\_hauts\_de\_france.csv}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{llp{6cm}}
+\toprule
+\textbf{Colonne} & \textbf{Type} & \textbf{Description} \\
+\midrule
+GEO & VARCHAR & Identifiant géographique (format : AAAA-DEP-XX) \\
+PCS & VARCHAR & Code PCS (1-9, \_T=total) \\
+SEX & VARCHAR & Sexe (M, F, \_T=total) \\
+TIME\_PERIOD & INT & Année de référence \\
+RP\_MEASURE & VARCHAR & Type de mesure (POP=population) \\
+AGE & VARCHAR & Tranche d'âge (Y15T24, Y25T54, Y\_GE55, Y\_GE15) \\
+OBS\_VALUE & FLOAT & Valeur observée (population) \\
+DEPARTEMENT & VARCHAR & Code département (02, 59, 60, 62, 80) \\
+\bottomrule
+\end{tabular}
+\caption{Structure de population\_hauts\_de\_france.csv}
+\end{table}
+\FloatBarrier
+
+\textbf{2. naissances\_hauts\_de\_france.csv / DECES\_hauts\_de\_france.csv}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{llp{6cm}}
+\toprule
+\textbf{Colonne} & \textbf{Type} & \textbf{Description} \\
+\midrule
+GEO & VARCHAR & Identifiant géographique \\
+EC\_MEASURE & VARCHAR & Type d'événement (LVB=naissances, DTH=décès) \\
+FREQ & VARCHAR & Fréquence (A=annuelle) \\
+TIME\_PERIOD & INT & Année \\
+OBS\_VALUE & FLOAT & Nombre d'événements \\
+DEPARTEMENT & VARCHAR & Code département \\
+\bottomrule
+\end{tabular}
+\caption{Structure des fichiers naissances/décès}
+\end{table}
+\FloatBarrier
+
+\textbf{3. CREATION\_ENT\_hauts\_de\_france.csv}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{llp{6cm}}
+\toprule
+\textbf{Colonne} & \textbf{Type} & \textbf{Description} \\
+\midrule
+GEO & VARCHAR & Identifiant géographique \\
+FREQ & VARCHAR & Fréquence (A=annuelle) \\
+SIDE\_MEASURE & VARCHAR & Type de mesure (BURE, UNIT\_LOC\_BURE) \\
+TIME\_PERIOD & INT & Année \\
+ACTIVITY & VARCHAR & Code NAF section (A-U) \\
+LEGAL\_FORM & VARCHAR & Forme juridique (10, 54, 57, \_T, OTH\_SIDE) \\
+OBS\_VALUE & FLOAT & Nombre de créations \\
+DEPARTEMENT & VARCHAR & Code département \\
+\bottomrule
+\end{tabular}
+\caption{Structure de CREATION\_ENT\_hauts\_de\_france.csv}
+\end{table}
+\FloatBarrier
+
+\textbf{4. DS\_FILOSOFI\_hauts\_de\_france.csv}
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{llp{6cm}}
+\toprule
+\textbf{Colonne} & \textbf{Type} & \textbf{Description} \\
+\midrule
+GEO & VARCHAR & Identifiant géographique \\
+TIME\_PERIOD & INT & Année (2021) \\
+UNIT\_MEASURE & VARCHAR & Unité (EUR\_YR, PT, \_Z, PS) \\
+FILOSOFI\_MEASURE & VARCHAR & Indicateur (MED\_SL, D1\_SL, D9\_SL, PR\_MD60...) \\
+OBS\_VALUE & FLOAT & Valeur de l'indicateur \\
+DEPARTEMENT & VARCHAR & Code département \\
+\bottomrule
+\end{tabular}
+\caption{Structure de DS\_FILOSOFI\_hauts\_de\_france.csv}
+\end{table}
+\FloatBarrier
+
+\subsubsection{Structure du fichier JSON communes}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{llp{6cm}}
+\toprule
+\textbf{Attribut} & \textbf{Type} & \textbf{Description} \\
+\midrule
+code & VARCHAR & Code INSEE de la commune (5 caractères) \\
+nom & VARCHAR & Nom de la commune \\
+codesPostaux & ARRAY & Liste des codes postaux \\
+codeDepartement & VARCHAR & Code département (2 caractères) \\
+departement\_nom & VARCHAR & Nom du département \\
+codeRegion & VARCHAR & Code région (32 = Hauts-de-France) \\
+region\_nom & VARCHAR & Nom de la région \\
+population & INT & Population municipale \\
+surface & FLOAT & Surface en hectares \\
+longitude & FLOAT & Longitude du centre \\
+latitude & FLOAT & Latitude du centre \\
+contour\_geojson & JSON & Contour de la commune (GeoJSON Polygon) \\
+\bottomrule
+\end{tabular}
+\caption{Structure de communes.json}
+\end{table}
+\FloatBarrier
+
+\subsection{Codes et nomenclatures}
+
+\subsubsection{Codes PCS (Professions et Catégories Socioprofessionnelles)}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{cl}
+\toprule
+\textbf{Code} & \textbf{Libellé} \\
+\midrule
+1 & Agriculteurs exploitants \\
+2 & Artisans, commerçants, chefs d'entreprise \\
+3 & Cadres et professions intellectuelles supérieures \\
+4 & Professions intermédiaires \\
+5 & Employés \\
+6 & Ouvriers \\
+7 & Retraités \\
+9 & Autres personnes sans activité professionnelle \\
+\_T & Total toutes catégories \\
+\bottomrule
+\end{tabular}
+\caption{Nomenclature des codes PCS}
+\end{table}
+\FloatBarrier
+
+\subsubsection{Codes NAF (sections d'activité)}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{cl|cl}
+\toprule
+\textbf{Code} & \textbf{Secteur} & \textbf{Code} & \textbf{Secteur} \\
+\midrule
+A & Agriculture & J & Information et communication \\
+B & Industries extractives & K & Activités financières \\
+C & Industrie manufacturière & L & Activités immobilières \\
+D & Énergie & M & Activités scientifiques \\
+E & Eau et déchets & N & Services administratifs \\
+F & Construction & P & Enseignement \\
+G & Commerce & Q & Santé et action sociale \\
+H & Transport & R & Arts et spectacles \\
+I & Hébergement et restauration & S & Autres services \\
+\bottomrule
+\end{tabular}
+\caption{Nomenclature des codes NAF (sections)}
+\end{table}
+\FloatBarrier
+
+\subsubsection{Indicateurs FILOSOFI}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lp{8cm}}
+\toprule
+\textbf{Code} & \textbf{Description} \\
+\midrule
+MED\_SL & Niveau de vie médian (euros/an) \\
+D1\_SL & Premier décile de niveau de vie \\
+D9\_SL & Neuvième décile de niveau de vie \\
+IR\_D9\_D1\_SL & Rapport interdécile (D9/D1) \\
+PR\_MD60 & Taux de pauvreté (seuil 60\% médiane) \\
+S\_EI\_DI & Part des revenus d'activité \\
+S\_RET\_PEN\_DI & Part des pensions et retraites \\
+S\_SOC\_BEN\_DI & Part des prestations sociales \\
+\bottomrule
+\end{tabular}
+\caption{Indicateurs FILOSOFI principaux}
+\end{table}
+\FloatBarrier
+
+\subsection{Analyses envisagées}
+
+Les données collectées permettent de répondre aux besoins d'analyse suivants, organisés par domaine métier :
+
+\subsubsection{Analyses démographiques}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{p{4cm}p{4cm}p{5cm}}
+\toprule
+\textbf{Analyse} & \textbf{Sources utilisées} & \textbf{Questions métier} \\
+\midrule
+Évolution de la population & population, communes & Quels territoires gagnent/perdent des habitants ? \\
+Pyramide des âges & population & Quel est le vieillissement par département ? \\
+Dynamique naturelle & naissances, décès & Quel est le solde naturel par territoire ? \\
+Structure familiale & fécondité & Quelle est la taille moyenne des familles ? \\
+\bottomrule
+\end{tabular}
+\caption{Analyses démographiques envisagées}
+\end{table}
+\FloatBarrier
+
+\subsubsection{Analyses économiques}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{p{4cm}p{4cm}p{5cm}}
+\toprule
+\textbf{Analyse} & \textbf{Sources utilisées} & \textbf{Questions métier} \\
+\midrule
+Dynamisme entrepreneurial & création\_ent, crea\_ei & Quels secteurs sont les plus dynamiques ? \\
+Profil des créateurs & crea\_ei & Quel est l'âge moyen des créateurs ? \\
+Emploi par catégorie & emploi\_chomage & Quelle est la répartition par PCS ? \\
+Évolution du chômage & emploi\_chomage & Comment évolue le taux de chômage ? \\
+\bottomrule
+\end{tabular}
+\caption{Analyses économiques envisagées}
+\end{table}
+
+\subsubsection{Analyses sociales}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{p{4cm}p{4cm}p{5cm}}
+\toprule
+\textbf{Analyse} & \textbf{Sources utilisées} & \textbf{Questions métier} \\
+\midrule
+Niveau de vie & filosofi, filosofi\_age & Quels sont les écarts de revenus ? \\
+Précarité & filosofi & Quel est le taux de pauvreté ? \\
+Conditions de logement & logement & Quel est le taux de surpeuplement ? \\
+Structure des ménages & ménage & Quelle est la taille des ménages ? \\
+\bottomrule
+\end{tabular}
+\caption{Analyses sociales envisagées}
+\end{table}
+
+\subsubsection{Analyses territoriales}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{p{4cm}p{4cm}p{5cm}}
+\toprule
+\textbf{Analyse} & \textbf{Sources utilisées} & \textbf{Questions métier} \\
+\midrule
+Comparaison départements & toutes sources & Quels départements sont les plus dynamiques ? \\
+Cartographie & communes + indicateurs & Comment visualiser les disparités ? \\
+Évolution temporelle & sources avec TIME\_PERIOD & Quelles tendances sur 10 ans ? \\
+Densité territoriale & communes, population & Quelle répartition de la population ? \\
+\bottomrule
+\end{tabular}
+\caption{Analyses territoriales envisagées}
+\end{table}
+
+\subsection{Indicateurs clés (KPIs)}
+
+Les indicateurs suivants seront calculés dans l'entrepôt de données pour répondre aux besoins d'analyse :
+
+\subsubsection{KPIs Démographiques}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{p{3.5cm}p{5cm}p{2cm}p{3cm}}
+\toprule
+\textbf{KPI} & \textbf{Formule} & \textbf{Unité} & \textbf{Source} \\
+\midrule
+Taux de natalité & Naissances / Population × 1000 & \textperthousand & naissances, population \\
+Taux de mortalité & Décès / Population × 1000 & \textperthousand & décès, population \\
+Solde naturel & Naissances - Décès & Nombre & naissances, décès \\
+Indice de vieillissement & Pop 65+ / Pop 0-19 × 100 & \% & population \\
+Taux de fécondité & Naissances / Femmes 15-49 & Ratio & naissances, population \\
+\bottomrule
+\end{tabular}
+\caption{Indicateurs démographiques}
+\end{table}
+
+\subsubsection{KPIs Économiques}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{p{3.5cm}p{5cm}p{2cm}p{3cm}}
+\toprule
+\textbf{KPI} & \textbf{Formule} & \textbf{Unité} & \textbf{Source} \\
+\midrule
+Taux de création & Créations année N / Stock N-1 & \% & création\_ent \\
+Part micro-entreprises & Micro / Total créations × 100 & \% & crea\_ei \\
+Taux d'activité & Actifs / Pop 15-64 × 100 & \% & emploi\_chomage \\
+Taux de chômage & Chômeurs / Actifs × 100 & \% & emploi\_chomage \\
+Diversification économique & Indice Herfindahl par secteur & Indice & création\_ent \\
+\bottomrule
+\end{tabular}
+\caption{Indicateurs économiques}
+\end{table}
+
+\subsubsection{KPIs Sociaux}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{p{3.5cm}p{5cm}p{2cm}p{3cm}}
+\toprule
+\textbf{KPI} & \textbf{Formule} & \textbf{Unité} & \textbf{Source} \\
+\midrule
+Revenu médian & MED\_SL (direct) & EUR/an & filosofi \\
+Taux de pauvreté & PR\_MD60 (direct) & \% & filosofi \\
+Rapport interdécile & D9\_SL / D1\_SL & Ratio & filosofi \\
+Taux de surpeuplement & Logements surpeuplés / Total & \% & logement \\
+Taille moyenne ménages & Population / Nb ménages & Personnes & ménage \\
+\bottomrule
+\end{tabular}
+\FloatBarrier
+\caption{Indicateurs sociaux}
+\end{table}
+\FloatBarrier
+\subsection{Périodes temporelles couvertes}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lll}
+\toprule
+\textbf{Source} & \textbf{Période} & \textbf{Fréquence} \\
+\midrule
+Population & 2010, 2015, 2021 & Recensement (5 ans) \\
+Naissances / Décès & 2014-2023 & Annuelle \\
+Créations entreprises & 2012-2024 & Annuelle \\
+Emploi / Chômage & 2010, 2015, 2021 & Recensement (5 ans) \\
+FILOSOFI & 2021 & Ponctuelle \\
+Logement / Ménages & 2010, 2015, 2021 & Recensement (5 ans) \\
+Communes & 2023 & Référentiel actualisé \\
+\bottomrule
+\end{tabular}
+\caption{Couverture temporelle des données}
+\end{table}
+\FloatBarrier
+% ============== SECTION 2 : MODÉLISATION ==============
+\section{Modélisation de l'Entrepôt de Données}
+
+Un \textbf{entrepôt de données (Data Warehouse)} est un système d'information décisionnel conçu pour
+centraliser, historiser et structurer des données issues de sources hétérogènes afin de faciliter
+leur analyse et leur exploitation à des fins d'aide à la décision. Contrairement aux bases de données
+transactionnelles (OLTP), un Data Warehouse est orienté \textbf{analyse} (OLAP), avec des données
+intégrées, historisées, non volatiles et organisées selon des axes métier.
+
+Dans ce projet, l'entrepôt de données constitue le socle analytique permettant l'étude
+des dynamiques territoriales (démographie, emploi, revenus, logement, activité économique) à partir
+de jeux de données statistiques structurés.
+\subsection{Approche de modélisation}
+Deux grandes approches méthodologiques existent pour la conception d'un Data Warehouse :
+
+\begin{itemize}
+    \item l'approche \textbf{Top-Down} (descendante), popularisée par Inmon
+    \item l'approche \textbf{Bottom-Up} (ascendante), proposée par Kimball
+\end{itemize}
+
+L'approche \textbf{Top-Down} consiste à concevoir en premier lieu un entrepôt de données global et
+normalisé (souvent en 3NF), à partir duquel sont ensuite dérivés des datamarts métiers. Cette approche
+offre une vision d'entreprise cohérente mais nécessite un cadrage fonctionnel lourd et des délais de
+mise en œuvre importants.
+\subsubsection{Justification de l'approche Bottom-Up}
+
+Pour ce projet, nous avons adopté une approche \textbf{bottom-up} (ascendante, style Kimball) pour les raisons suivantes :
+
+\begin{table}[h]
+\centering
+\begin{tabular}{p{3cm}p{5cm}p{5cm}}
+\toprule
+\textbf{Critère} & \textbf{Notre contexte} & \textbf{Justification Bottom-Up} \\
+\midrule
+Volume de données & $\sim$19 000 enregistrements & Volume modéré, itération rapide possible \\
+Sources disponibles & 12 fichiers structurés & Données existantes à valoriser \\
+Besoins analytiques & Analyses territoriales ciblées & Datamarts thématiques prioritaires \\
+Délai de livraison & Projet à court terme & Time-to-value rapide \\
+Évolutivité & Ajout futur de sources & Architecture extensible \\
+\bottomrule
+\end{tabular}
+\caption{Justification de l'approche Bottom-Up}
+\end{table}
+
+Cette approche contraste avec l'approche \textbf{top-down} (Inmon) qui aurait nécessité une modélisation globale préalable de l'entreprise, inadaptée à notre contexte de projet ciblé.
+\FloatBarrier
+\subsection{Modélisation logique}
+
+La modélisation logique d'un Data Warehouse peut s'appuyer sur plusieurs types de schémas
+dimensionnels, dont l'objectif est d'organiser les données de manière optimale pour l'analyse
+décisionnelle. Les trois schémas les plus couramment utilisés sont :
+
+\begin{itemize}
+    \item le \textbf{schéma en étoile} (Star Schema),
+    \item le \textbf{schéma en flocon} (Snowflake Schema),
+    \item le \textbf{schéma en constellation}.
+\end{itemize}
+
+Le \textbf{schéma en étoile} est le modèle dimensionnel le plus simple et le plus répandu. Il repose
+sur une table de faits centrale contenant les mesures quantitatives (ex. population, revenus,
+taux de chômage), reliée directement à des tables de dimensions dénormalisées (temps, géographie,
+démographie, activité, logement). Par exemple, une table de faits \texttt{FAIT\_EMPLOI} peut être
+liée directement aux dimensions \texttt{DIM\_TEMPS}, \texttt{DIM\_GEOGRAPHIE} et
+\texttt{DIM\_DEMOGRAPHIE}. Cette structure limite le nombre de jointures nécessaires, ce qui rend
+les requêtes SQL plus lisibles et plus performantes, notamment dans les outils de reporting et de
+visualisation.
+
+Le \textbf{schéma en flocon} constitue une évolution plus normalisée du schéma en étoile. Les
+dimensions y sont décomposées en plusieurs tables hiérarchiques. Par exemple, la dimension
+géographique peut être séparée en tables \texttt{COMMUNE}, \texttt{DEPARTEMENT} et
+\texttt{REGION}. Bien que cette approche réduise la redondance des données, elle augmente le nombre
+de jointures nécessaires pour les analyses, ce qui complexifie les requêtes et peut impacter les
+performances. Ce type de schéma est généralement réservé aux contextes où la normalisation des
+référentiels est un enjeu majeur.
+
+Le \textbf{schéma en constellation} (ou galaxie) généralise le principe du schéma en étoile en
+introduisant plusieurs tables de faits partageant des dimensions communes. Par exemple, les tables
+\texttt{FAIT\_POPULATION}, \texttt{FAIT\_EMPLOI} et \texttt{FAIT\_REVENUS} peuvent partager les
+dimensions \texttt{DIM\_TEMPS} et \texttt{DIM\_GEOGRAPHIE}. Cette approche permet d'analyser plusieurs
+processus métier de manière cohérente, mais nécessite une gouvernance stricte des dimensions afin
+d'assurer la cohérence analytique entre les différents domaines.
+
+Dans le cadre de ce projet, le \textbf{schéma en étoile} a été retenu en raison de sa simplicité de
+mise en œuvre, de ses performances élevées en lecture et de sa forte adéquation avec les usages
+décisionnels. Il permet une compréhension rapide du modèle par les utilisateurs et facilite la
+construction de datamarts analytiques évolutifs.
+
+
+\subsubsection{Schéma en étoile (Star Schema)}
+
+Le modèle adopté est un \textbf{schéma en étoile} (Star Schema) avec :
+\begin{itemize}
+    \item \textbf{6 tables de faits} : mesures quantitatives par domaine métier
+    \item \textbf{6 tables de dimensions} : axes d'analyse partagés
+    \item \textbf{4 schémas SQL} : organisation logique (stg, dwh, dm, analytics)
+\end{itemize}
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    dimension/.style={
+        rectangle, draw=azure, fill=azure!20,
+        minimum width=3.8cm, minimum height=1.2cm,
+        text centered, font=\scriptsize
+    },
+    fact/.style={
+        rectangle, draw=darkblue, fill=darkblue!20,
+        minimum width=3.6cm, minimum height=1.1cm,
+        text centered, font=\scriptsize\bfseries
+    },
+    arrow/.style={->, thick, >=stealth, darkblue}
+]
+
+% =====================
+% Dimensions (gauche, espace réduit)
+% =====================
+\node[dimension] (temps)  at (-7, 4.5) {DIM\_TEMPS};
+\node[dimension] (geo)    at (-7, 3.0) {DIM\_GEOGRAPHIE};
+\node[dimension] (demo)   at (-7, 1.0) {DIM\_DEMOGRAPHIE};
+\node[dimension] (ind)    at (-7,-0.8) {DIM\_INDICATEUR};
+\node[dimension] (act)    at (-7,-2.6) {DIM\_ACTIVITE};
+\node[dimension] (logdim) at (-7,-4.4) {DIM\_LOGEMENT};
+
+% =====================
+% Tables de faits (droite, plus proches)
+% =====================
+\node[fact] (pop) at (4, 3.6) {FAIT\_POPULATION};
+\node[fact] (evt) at (4, 2.4) {FAIT\_EVENEMENTS};
+\node[fact] (ent) at (4, 1.2) {FAIT\_ENTREPRISES};
+\node[fact] (emp) at (4, 0.0) {FAIT\_EMPLOI};
+\node[fact] (rev) at (4,-1.2) {FAIT\_REVENUS};
+\node[fact] (log) at (4,-2.4) {FAIT\_LOGEMENT};
+
+% =====================
+% Connexions DROITES et DISTINCTES
+% =====================
+% FAIT_POPULATION
+\draw[arrow] (temps.east) -- (pop.west);
+\draw[arrow] (geo.east)   -- ++(0.6,0) -- (pop.west);
+
+% FAIT_EVENEMENTS
+\draw[arrow] (temps.east) -- ++(0.6,0) -- (evt.west);
+\draw[arrow] (ind.east)   -- (evt.west);
+
+% FAIT_ENTREPRISES
+\draw[arrow] (temps.east) -- ++(0.6,0) -- (ent.west);
+\draw[arrow] (act.east)   -- (ent.west);
+
+% FAIT_EMPLOI
+\draw[arrow] (temps.east) -- ++(0.6,0) -- (emp.west);
+\draw[arrow] (demo.east)  -- (emp.west);
+
+% FAIT_REVENUS
+\draw[arrow] (temps.east) -- ++(0.6,0) -- (rev.west);
+\draw[arrow] (demo.east)  -- ++(0.6,0) -- (rev.west);
+
+% FAIT_LOGEMENT
+\draw[arrow] (temps.east)  -- ++(0.6,0) -- (log.west);
+\draw[arrow] (logdim.east) -- (log.west);
+
+\end{tikzpicture}
+\caption{Architecture logique du Data Warehouse – Espacement réduit entre dimensions et faits}
+\end{figure}
+\FloatBarrier
+\subsubsection{Tables de dimensions}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{p{3.6cm}p{2cm}p{6cm}}
+\toprule
+\textbf{Dimension} & \textbf{Clé} & \textbf{Attributs principaux} \\
+\midrule
+dwh.dim\_temps & temps\_id & annee, trimestre, mois, libelle\_periode, est\_annee\_recensement \\
+dwh.dim\_geographie & geo\_id & commune\_code, commune\_nom, departement\_code, departement\_nom, region\_code, longitude, latitude, surface\_km2, niveau\_geo \\
+dwh.dim\_demographie & demo\_id & sexe\_code, sexe\_libelle, age\_code, age\_libelle, age\_min, age\_max, pcs\_code, pcs\_libelle \\
+dwh.dim\_activite & activite\_id & naf\_section\_code, naf\_section\_libelle, forme\_juridique\_code, secteur\_activite, type\_entreprise \\
+dwh.dim\_indicateur & indicateur\_id & indicateur\_code, indicateur\_libelle, unite\_mesure, domaine, source\_donnees \\
+dwh.dim\_logement & logement\_id & occupation\_code, surpeuplement\_code, type\_menage\_code, taille\_menage\_code \\
+\bottomrule
+\end{tabular}
+\caption{Tables de dimensions du Data Warehouse}
+\end{table}
+\FloatBarrier
+
+\subsubsection{Tables de faits}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{p{4.4cm}p{4cm}p{6cm}}
+%\begin{tabular}{>{\raggedright\arraybackslash}p{4.5cm} >{\raggedright\arraybackslash}p{2.4cm} p{6.4cm}}
+\toprule
+\textbf{Table de faits} & \textbf{Clés étrangères} & \textbf{Mesures} \\
+\midrule
+dwh.fait\_population & temps\_id, geo\_id, demo\_id & population, population\_hommes, population\_femmes \\
+dwh.fait\_evenements\_demo & temps\_id, geo\_id & naissances, deces, solde\_naturel (calculé), taux\_natalite, taux\_mortalite \\
+dwh.fait\_entreprises & temps\_id, geo\_id, activite\_id & nb\_creations\_entreprises, nb\_creations\_micro, nb\_creations\_ei, par sexe et tranche d'âge \\
+dwh.fait\_emploi & temps\_id, geo\_id, demo\_id & population\_active, population\_en\_emploi, population\_chomeurs, taux\_chomage \\
+dwh.fait\_revenus & temps\_id, geo\_id, demo\_id & revenu\_median, revenu\_d1, revenu\_d9, taux\_pauvrete, structure des revenus \\
+dwh.fait\_logement & temps\_id, geo\_id, logement\_dim\_id & nb\_residences\_principales, nb\_logements\_surpeuples, taux\_surpeuplement \\
+\bottomrule
+\end{tabular}
+\caption{Tables de faits du Data Warehouse}
+\end{table}
+\FloatBarrier
+\subsection{Organisation des schémas SQL}
+
+L'entrepôt de données est organisé en 4 schémas distincts pour une séparation claire des responsabilités :
+
+\begin{table}[h]
+\centering
+\begin{tabular}{llp{7cm}}
+\toprule
+\textbf{Schéma} & \textbf{Rôle} & \textbf{Contenu} \\
+\midrule
+\texttt{stg} & Staging & Tables temporaires pour les données brutes en cours de transformation \\
+\texttt{dwh} & Data Warehouse & Tables de dimensions et de faits (modèle en étoile) \\
+\texttt{dm} & Datamarts & Vues matérialisées par domaine métier (démographie, économie, social) \\
+\texttt{analytics} & Analytique & Vues agrégées pour tableaux de bord et reporting \\
+\bottomrule
+\end{tabular}
+\caption{Organisation des schémas SQL}
+\end{table}
+\FloatBarrier
+\subsection{Modélisation physique}
+
+\subsubsection{Scripts DDL (Data Definition Language) - Dimensions}
+
+Les scripts SQL de création sont automatisés via Terraform. Voici les structures principales :
+
+\begin{lstlisting}[language=SQL, caption=Création de la dimension géographie]
+CREATE TABLE dwh.dim_geographie (
+    geo_id INT IDENTITY(1,1) PRIMARY KEY,
+    commune_code NVARCHAR(10) NULL,
+    commune_nom NVARCHAR(255) NULL,
+    departement_code NVARCHAR(3) NOT NULL,
+    departement_nom NVARCHAR(100) NULL,
+    region_code NVARCHAR(3) NULL,
+    region_nom NVARCHAR(100) NULL,
+    longitude FLOAT NULL,
+    latitude FLOAT NULL,
+    surface_km2 FLOAT NULL,
+    niveau_geo NVARCHAR(20) NOT NULL DEFAULT 'DEPARTEMENT',
+    geo_code_source NVARCHAR(50) NULL,
+    date_creation DATETIME2 DEFAULT GETDATE(),
+    CONSTRAINT UK_dim_geo_code UNIQUE (departement_code, commune_code)
+);
+\end{lstlisting}
+\FloatBarrier
+\begin{lstlisting}[language=SQL, caption=Création de la table de faits population]
+CREATE TABLE dwh.fait_population (
+    population_id BIGINT IDENTITY(1,1) PRIMARY KEY,
+    temps_id INT NOT NULL,
+    geo_id INT NOT NULL,
+    demo_id INT NOT NULL,
+    population FLOAT NULL,
+    population_hommes FLOAT NULL,
+    population_femmes FLOAT NULL,
+    source_fichier NVARCHAR(255) NULL,
+    date_chargement DATETIME2 DEFAULT GETDATE(),
+    CONSTRAINT FK_fait_pop_temps FOREIGN KEY (temps_id)
+        REFERENCES dwh.dim_temps(temps_id),
+    CONSTRAINT FK_fait_pop_geo FOREIGN KEY (geo_id)
+        REFERENCES dwh.dim_geographie(geo_id),
+    CONSTRAINT FK_fait_pop_demo FOREIGN KEY (demo_id)
+        REFERENCES dwh.dim_demographie(demo_id)
+);
+\end{lstlisting}
+\FloatBarrier
+\subsubsection{Datamarts et vues analytiques}
+
+Les datamarts sont implémentés sous forme de vues SQL pour faciliter la maintenance :
+
+\begin{lstlisting}[language=SQL, caption=Vue du datamart démographie]
+CREATE VIEW dm.vm_demographie_departement AS
+SELECT
+    t.annee,
+    g.departement_code,
+    g.departement_nom,
+    SUM(p.population) AS population_totale,
+    SUM(e.naissances) AS naissances,
+    SUM(e.deces) AS deces,
+    SUM(e.solde_naturel) AS solde_naturel,
+    CAST(SUM(e.naissances) AS FLOAT) / NULLIF(SUM(p.population),0) * 1000
+        AS taux_natalite
+FROM dwh.fait_population p
+INNER JOIN dwh.dim_temps t ON p.temps_id = t.temps_id
+INNER JOIN dwh.dim_geographie g ON p.geo_id = g.geo_id
+LEFT JOIN dwh.fait_evenements_demo e
+    ON e.temps_id = t.temps_id AND e.geo_id = g.geo_id
+WHERE g.niveau_geo = 'DEPARTEMENT'
+GROUP BY t.annee, g.departement_code, g.departement_nom;
+\end{lstlisting}
+\FloatBarrier
+\subsection{Automatisation Terraform}
+
+Le déploiement du Data Warehouse est entièrement automatisé via Terraform :
+
+\begin{lstlisting}[caption=Configuration Terraform pour le DWH]
+# Dans terraform.tfvars
+deploy_dwh = true
+
+# Execution automatique via null_resource
+resource "null_resource" "deploy_dwh" {
+  count = var.deploy_dwh ? 1 : 0
+  triggers = {
+    schemas_hash = filesha256("sql/001_create_schemas.sql")
+    dimensions_hash = filesha256("sql/002_create_dimensions.sql")
+    facts_hash = filesha256("sql/003_create_facts.sql")
+  }
+  provisioner "local-exec" {
+    command = "python sql/deploy_dwh.py --tfvars terraform.tfvars"
+  }
+}
+\end{lstlisting}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lp{8cm}}
+\toprule
+\textbf{Script SQL} & \textbf{Description} \\
+\midrule
+001\_create\_schemas.sql & Création des schémas stg, dwh, dm, analytics \\
+002\_create\_dimensions.sql & Création des 6 tables de dimensions \\
+003\_create\_facts.sql & Création des 6 tables de faits avec FK \\
+004\_populate\_dimensions.sql & Alimentation des référentiels (temps, geo, PCS, NAF) \\
+005\_create\_datamarts.sql & Création des vues datamarts et analytiques \\
+\bottomrule
+\end{tabular}
+\caption{Scripts SQL de déploiement du Data Warehouse}
+\end{table}
+\FloatBarrier
+% ============== SECTION 3 : ARCHITECTURE ==============
+\section{Architecture Technique et Configuration}
+
+\subsection{Vue d'ensemble de l'architecture}
+
+L'architecture de ce projet repose sur un pipeline ETL local qui charge les données vers \textbf{Azure SQL Database}. Les données sources sont stockées localement et transformées via des scripts Python avant d'être chargées dans l'entrepôt de données.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    component/.style={rectangle, draw=azure, fill=azure!10, minimum width=2.8cm, minimum height=1cm, text centered, font=\footnotesize},
+    etl/.style={rectangle, draw=darkblue, fill=darkblue!20, minimum width=2.8cm, minimum height=1cm, text centered, font=\footnotesize\bfseries},
+    arrow/.style={->, thick, >=stealth}
+]
+
+% Sources locales
+\node[component] (csv) at (0,0) {Fichiers CSV\\(uploads/landing/csv/)};
+\node[component] (json) at (0,-1.8) {communes.json\\(data/)};
+
+% ETL Python
+\node[etl] (etl) at (5,0) {ETL Python\\pandas + SQLAlchemy};
+\node[component] (staging) at (5,-1.8) {Tables Staging\\(dbo.stg\_*)};
+
+% DWH Azure SQL
+\node[component] (dims) at (10,0) {Dimensions\\(dwh.dim\_*)};
+\node[component] (facts) at (10,-1.8) {Faits\\(dwh.fait\_*)};
+\node[component] (dm) at (10,-3.6) {Datamarts\\(dm.vm\_*)};
+
+% Flèches
+\draw[arrow] (csv) -- (etl);
+\draw[arrow] (json) -- (etl);
+\draw[arrow] (etl) -- (staging);
+\draw[arrow] (staging) -- (dims);
+\draw[arrow] (staging) -- (facts);
+\draw[arrow] (facts) -- (dm);
+\draw[arrow] (dims) -- (dm);
+
+\end{tikzpicture}
+\caption{Architecture du pipeline ETL : Fichiers locaux vers Azure SQL Database}
+\end{figure}
+\FloatBarrier
+
+\subsection{Sources de données locales}
+
+Les données sources sont stockées localement dans le projet :
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lp{5cm}l}
+\toprule
+\textbf{Emplacement} & \textbf{Contenu} & \textbf{Format} \\
+\midrule
+uploads/landing/csv/ & 11 fichiers de données INSEE (population, entreprises, revenus, emploi, etc.) & CSV \\
+data/communes.json & Référentiel des 3 782 communes Hauts-de-France avec coordonnées GPS & JSON \\
+\bottomrule
+\end{tabular}
+\caption{Sources de données locales}
+\end{table}
+\FloatBarrier
+
+\subsection{Composant Azure utilisé}
+
+Le seul service Azure utilisé dans ce projet est la base de données :
+
+\begin{table}[h]
+\centering
+\begin{tabular}{llp{6cm}}
+\toprule
+\textbf{Service} & \textbf{Nom} & \textbf{Rôle} \\
+\midrule
+Azure SQL Database & sqlelbrek & Entrepôt de données (staging, dimensions, faits, datamarts) \\
+\bottomrule
+\end{tabular}
+\caption{Service Azure utilisé}
+\end{table}
+\FloatBarrier
+
+\subsection{Configuration des accès}
+
+\subsubsection{Connexion à Azure SQL Database}
+
+La connexion à la base de données est configurée via des variables d'environnement ou des paramètres en ligne de commande :
+
+\begin{lstlisting}[caption=Variables de connexion Azure SQL]
+# Variables d'environnement pour la connexion
+export AZURE_SQL_SERVER="sqlelbrek-prod.database.windows.net"
+export AZURE_SQL_DATABASE="projet_data_eng"
+export AZURE_SQL_USER="sqladmin"
+export AZURE_SQL_PASSWORD="<mot_de_passe>"
+
+# Ou via parametres de ligne de commande
+python analytics/etl/run_etl.py --full \
+    --server sqlelbrek-prod.database.windows.net \
+    --database projet_data_eng \
+    --username sqladmin --password "***"
+\end{lstlisting}
+
+La connexion repose sur une architecture à trois couches logicielles qui s'enchaînent entre le code Python et la base Azure SQL Database :
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    layer/.style={rectangle, draw=azure, fill=azure!10, minimum width=4cm, minimum height=1.2cm, text centered, font=\small},
+    arrow/.style={->, thick, >=stealth}
+]
+\node[layer] (python) at (0,0) {Code Python\\(scripts ETL)};
+\node[layer] (pyodbc) at (5.5,0) {pyodbc\\(bibliothèque Python)};
+\node[layer] (odbc) at (11,0) {ODBC Driver 18\\(pilote Microsoft)};
+\node[layer, fill=darkblue!15, draw=darkblue] (azure) at (11,-2.5) {Azure SQL Database\\(Data Warehouse)};
+
+\draw[arrow] (python) -- (pyodbc);
+\draw[arrow] (pyodbc) -- (odbc);
+\draw[arrow] (odbc) -- (azure);
+\end{tikzpicture}
+\caption{Architecture de connexion : chaîne Python vers Azure SQL}
+\end{figure}
+\FloatBarrier
+
+\textbf{1. ODBC Driver 18 for SQL Server} \textit{(couche système)}
+
+ODBC (\textit{Open Database Connectivity}) est un standard universel d'accès aux bases de données. Le \textbf{Driver 18} est le pilote fourni par Microsoft, installé directement sur la machine (hors Python). Il assure :
+\begin{itemize}[leftmargin=*]
+    \item Le \textbf{transport réseau} des requêtes SQL vers le serveur Azure via le protocole TDS (\textit{Tabular Data Stream}) sur le port 1433
+    \item Le \textbf{chiffrement TLS} de la connexion (\texttt{Encrypt=yes})
+    \item L'\textbf{authentification} auprès du serveur SQL (login/mot de passe)
+\end{itemize}
+
+Sans ce driver installé sur la machine, aucune connexion Python vers Azure SQL n'est possible.
+
+\textbf{2. pyodbc} \textit{(couche Python)}
+
+\texttt{pyodbc} est une bibliothèque Python (installée via \texttt{pip install pyodbc}) qui sert de pont entre le code Python et le driver ODBC. Elle permet d'ouvrir des connexions, d'exécuter des requêtes SQL et de récupérer les résultats directement en Python.
+
+Dans le projet, la connexion est construite ainsi (extrait de \texttt{deploy\_dwh.py}) :
+
+\begin{lstlisting}[language=Python, caption=Construction de la connexion pyodbc]
+import pyodbc
+
+conn_str = (
+    "DRIVER={ODBC Driver 18 for SQL Server};"  # Pilote a utiliser
+    "SERVER=sqlelbrek-prod.database.windows.net,1433;"  # Serveur Azure + port
+    "DATABASE=projet_data_eng;"                # Nom de la base
+    "UID=sqladmin;"                            # Login administrateur
+    "PWD=<mot_de_passe>;"                      # Mot de passe
+    "Encrypt=yes;"                             # Chiffrement TLS active
+    "TrustServerCertificate=yes;"              # Accepter le certificat
+)
+
+conn = pyodbc.connect(conn_str, autocommit=True)
+cursor = conn.cursor()
+cursor.execute("SELECT * FROM dwh.dim_temps")
+\end{lstlisting}
+
+\textbf{3. SQLAlchemy} \textit{(couche abstraction -- optionnelle)}
+
+SQLAlchemy est un ORM (\textit{Object-Relational Mapper}) Python de plus haut niveau. Il utilise pyodbc en interne mais offre une interface plus pratique, notamment pour charger des \texttt{DataFrame} pandas directement dans SQL. La chaîne de connexion SQLAlchemy suit un format URL :
+
+\begin{lstlisting}[caption=Format de connexion SQLAlchemy]
+mssql+pyodbc://sqladmin:<pwd>@sqlelbrek-prod.database.windows.net:1433/projet_data_eng?driver=ODBC+Driver+18+for+SQL+Server
+\end{lstlisting}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lp{7cm}}
+\toprule
+\textbf{Segment} & \textbf{Signification} \\
+\midrule
+\texttt{mssql} & Type de base de données (Microsoft SQL Server) \\
+\texttt{+pyodbc} & Connecteur Python à utiliser (pyodbc) \\
+\texttt{sqladmin:<pwd>} & Identifiants de connexion (login et mot de passe) \\
+\texttt{@sqlelbrek-prod...} & Adresse du serveur Azure SQL \\
+\texttt{:1433} & Port réseau (port standard SQL Server) \\
+\texttt{/projet\_data\_eng} & Nom de la base de données cible \\
+\texttt{?driver=ODBC+Driver+18...} & Pilote ODBC à utiliser sur la machine \\
+\bottomrule
+\end{tabular}
+\caption{Décomposition de la chaîne de connexion SQLAlchemy}
+\end{table}
+\FloatBarrier
+
+\begin{table}[h]
+\centering
+\begin{tabular}{llp{5.5cm}}
+\toprule
+\textbf{Composant} & \textbf{Type} & \textbf{Rôle} \\
+\midrule
+ODBC Driver 18 & Logiciel système & Pilote réseau installé sur la machine, gère le transport et le chiffrement \\
+pyodbc & Bibliothèque Python & Pont entre Python et le driver ODBC, exécute les requêtes SQL \\
+SQLAlchemy & Bibliothèque Python & Couche d'abstraction haut niveau, facilite le chargement de données via pandas \\
+\bottomrule
+\end{tabular}
+\caption{Récapitulatif des trois composants de connexion}
+\end{table}
+\FloatBarrier
+
+\subsubsection{Accès pour les équipes analytiques}
+
+Quatre rôles de base de données sont configurés pour gérer les accès :
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lp{4cm}p{5cm}}
+\toprule
+\textbf{Rôle SQL} & \textbf{Permissions} & \textbf{Usage} \\
+\midrule
+role\_etl\_process & SELECT INSERT UPDATE DELETE sur stg, dwh ; SELECT sur dm, analytics & Jobs ETL automatisés \\
+role\_analyst & SELECT sur dimensions dwh, dm, analytics & Data analysts pour exploration \\
+role\_bi\_reader & SELECT sur dm, analytics + dimensions clés & Power BI, Tableau, outils BI \\
+role\_dwh\_admin & CONTROL sur tous les schémas & Administration et maintenance \\
+\bottomrule
+\end{tabular}
+\caption{Rôles de base de données et permissions}
+\end{table}
+\FloatBarrier
+\begin{lstlisting}[language=SQL, caption=Création des rôles SQL]
+-- Role pour les analystes (lecture seule datamarts)
+CREATE ROLE role_analyst;
+GRANT SELECT ON SCHEMA::dm TO role_analyst;
+GRANT SELECT ON SCHEMA::analytics TO role_analyst;
+
+-- Role pour les outils BI
+CREATE ROLE role_bi_reader;
+GRANT SELECT ON SCHEMA::dm TO role_bi_reader;
+GRANT SELECT ON dwh.dim_temps TO role_bi_reader;
+GRANT SELECT ON dwh.dim_geographie TO role_bi_reader;
+\end{lstlisting}
+\FloatBarrier
+
+\subsection{Configuration de performance}
+
+\subsubsection{Index Columnstore}
+
+Les tables de faits utilisent des \textbf{index columnstore} pour optimiser les requêtes analytiques (agrégations, scans) :
+
+\begin{lstlisting}[language=SQL, caption=Index columnstore sur les tables de faits]
+-- Index columnstore pour les agregations analytiques
+CREATE CLUSTERED COLUMNSTORE INDEX CCI_fait_population
+ON dwh.fait_population;
+
+CREATE CLUSTERED COLUMNSTORE INDEX CCI_fait_entreprises
+ON dwh.fait_entreprises;
+\end{lstlisting}
+\FloatBarrier
+\subsubsection{Compression des données}
+
+Les tables de dimensions utilisent la \textbf{compression de page} pour réduire l'espace de stockage :
+
+\begin{lstlisting}[language=SQL, caption=Compression des dimensions]
+ALTER TABLE dwh.dim_geographie REBUILD WITH (DATA_COMPRESSION = PAGE);
+ALTER TABLE dwh.dim_demographie REBUILD WITH (DATA_COMPRESSION = PAGE);
+\end{lstlisting}
+
+\subsubsection{Procédures de maintenance}
+
+Deux procédures de maintenance automatisées sont créées :
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lp{8cm}}
+\toprule
+\textbf{Procédure} & \textbf{Description} \\
+\midrule
+dwh.sp\_maintenance\_index & Reorganize (10-30\% fragmentation) ou Rebuild (>30\%) des index \\
+dwh.sp\_update\_statistics & Mise à jour des statistiques pour l'optimiseur de requêtes \\
+\bottomrule
+\end{tabular}
+\caption{Procédures de maintenance}
+\end{table}
+\FloatBarrier
+\subsection{Vue de monitoring}
+
+Une vue de monitoring permet de surveiller l'état des tables :
+
+\begin{lstlisting}[language=SQL, caption=Vue de monitoring des tables]
+CREATE VIEW analytics.v_monitoring_tables AS
+SELECT
+    s.name AS schema_name,
+    t.name AS table_name,
+    p.rows AS row_count,
+    CAST(SUM(a.total_pages) * 8 / 1024.0 AS DECIMAL(18,2)) AS size_mb,
+    MAX(ius.last_user_update) AS last_update
+FROM sys.tables t
+INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+INNER JOIN sys.partitions p ON t.object_id = p.object_id
+...
+WHERE s.name IN ('stg', 'dwh', 'dm');
+\end{lstlisting}
+\FloatBarrier
+% ============== SECTION 4 : ETL ==============
+\section{Intégration des ETL}
+
+\subsection{Architecture des flux ETL}
+
+Le pipeline ETL est organisé en 4 étapes séquentielles :
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+    step/.style={rectangle, draw=azure, fill=azure!20, minimum width=3.5cm, minimum height=1.2cm, text centered, font=\small},
+    arrow/.style={->, thick, >=stealth}
+]
+
+\node[step] (s1) at (0,0) {1. Staging\\(CSV $\rightarrow$ SQL)};
+\node[step] (s2) at (5.2,0) {2. Dimensions\\(Référentiels)};
+\node[step] (s3) at (9.8,0) {3. Faits\\(Mesures)};
+\node[step] (s4) at (14.0,0) {4. Refresh\\(Stats/Vues)};
+
+\draw[arrow] (s1) -- (s2);
+\draw[arrow] (s2) -- (s3);
+\draw[arrow] (s3) -- (s4);
+
+\end{tikzpicture}
+\caption{Pipeline ETL en 4 étapes}
+\end{figure}
+\FloatBarrier
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{clp{7cm}}
+\toprule
+\textbf{Étape} & \textbf{Script} & \textbf{Description} \\
+\midrule
+1 & export\_to\_sql.py & Charge les CSV locaux vers les tables de staging (dbo.stg\_*) \\
+2 & load\_dimensions.py & Alimente les 6 dimensions (temps, géographie, démographie, activité, indicateur, logement) \\
+3 & load\_facts.py & Alimente les tables de faits à partir du staging \\
+4 & run\_etl.py --refresh & Met à jour les statistiques et vérifie les vues \\
+\bottomrule
+\end{tabular}
+\caption{Scripts ETL du pipeline}
+\end{table}
+\FloatBarrier
+\subsection{Chargement des dimensions}
+
+Les dimensions sont alimentées à partir de référentiels statiques et des données sources :
+
+\begin{lstlisting}[language=Python, caption=Extrait de load\_dimensions.py]
+def load_dim_geographie(engine, communes_path=None):
+    """Charge la dimension geographie."""
+    departements = [
+        ('02', 'Aisne', '32', 'Hauts-de-France'),
+        ('59', 'Nord', '32', 'Hauts-de-France'),
+        ('60', 'Oise', '32', 'Hauts-de-France'),
+        ('62', 'Pas-de-Calais', '32', 'Hauts-de-France'),
+        ('80', 'Somme', '32', 'Hauts-de-France'),
+    ]
+    df = pd.DataFrame(departements, columns=[...])
+    df.to_sql('dim_geographie', engine, schema='dwh',
+              if_exists='append', index=False)
+\end{lstlisting}
+\FloatBarrier
+\subsection{Chargement des tables de faits}
+
+Les tables de faits sont alimentées par transformation des données de staging avec jointure sur les dimensions :
+
+\begin{lstlisting}[language=Python, caption=Extrait de load\_facts.py]
+def load_fait_population(engine):
+    """Charge la table de faits population."""
+    # Lire le staging
+    df_stg = pd.read_sql("SELECT * FROM dbo.stg_population", conn)
+
+    # Mapper les IDs de dimensions
+    temps_map = get_dim_mapping(engine, 'dim_temps', 'temps_id', ['annee'])
+    geo_map = get_dim_mapping(engine, 'dim_geographie', 'geo_id', ['departement_code'])
+
+    df_fact['temps_id'] = df_fact['annee'].map(temps_map)
+    df_fact['geo_id'] = df_fact['dept_code'].map(geo_map)
+
+    # Inserer dans la table de faits
+    df_fact.to_sql('fait_population', engine, schema='dwh', ...)
+\end{lstlisting}
+\FloatBarrier
+\subsection{Traitements de qualité des données}
+
+\subsubsection{Nettoyage des données}
+
+Les traitements de nettoyage appliqués incluent :
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lp{8cm}}
+\toprule
+\textbf{Traitement} & \textbf{Description} \\
+\midrule
+Normalisation colonnes & Conversion en minuscules, remplacement \% $\rightarrow$ pct, / $\rightarrow$ \_ \\
+Parsing GEO & Extraction année/niveau/code depuis "2024-DEP-02" \\
+Codes département & Zero-padding sur 2 caractères (2 $\rightarrow$ 02) \\
+Valeurs nulles & Remplacement par NULL SQL, filtrage des lignes invalides \\
+Déduplication & Suppression des doublons sur clés composites \\
+Types de données & Conversion STRING $\rightarrow$ INT/FLOAT selon colonnes \\
+\bottomrule
+\end{tabular}
+\caption{Traitements de nettoyage appliqués}
+\end{table}
+\FloatBarrier
+\subsubsection{Transformations appliquées}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Source} & \textbf{Transformation} & \textbf{Cible} \\
+\midrule
+stg\_population & Agrégation par dept/année + mapping dims & fait\_population \\
+stg\_naissances + stg\_deces & Fusion + calcul solde naturel & fait\_evenements\_demo \\
+stg\_creation\_entreprises & Agrégation par secteur + mapping & fait\_entreprises \\
+stg\_ds\_filosofi & Pivot indicateurs + mapping & fait\_revenus \\
+\bottomrule
+\end{tabular}
+\caption{Transformations ETL par source}
+\end{table}
+\FloatBarrier
+\subsection{Configuration des zones de sortie}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{llp{6cm}}
+\toprule
+\textbf{Zone} & \textbf{Schéma SQL} & \textbf{Contenu} \\
+\midrule
+Staging & dbo.stg\_* & Tables temporaires (13 tables) \\
+Dimensions & dwh.dim\_* & Tables de dimensions (6 tables) \\
+Faits & dwh.fait\_* & Tables de faits (6 tables) \\
+Datamarts & dm.vm\_* & Vues agrégées (5 vues) \\
+Analytics & analytics.v\_* & Vues tableau de bord (1 vue) \\
+\bottomrule
+\end{tabular}
+\caption{Zones de sortie des ETL}
+\end{table}
+\FloatBarrier
+\subsection{Exécution du pipeline}
+
+Le pipeline peut être exécuté manuellement ou automatisé via Terraform :
+
+\begin{lstlisting}[caption=Exécution manuelle du pipeline ETL]
+# Pipeline complet
+python analytics/etl/run_etl.py --full
+
+# Etapes individuelles
+python analytics/etl/run_etl.py --dimensions  # Dimensions seules
+python analytics/etl/run_etl.py --facts       # Faits seuls
+python analytics/etl/run_etl.py --refresh     # Stats/vues
+
+# Avec parametres explicites
+python analytics/etl/run_etl.py --full \
+    --server sqlelbrek-prod.database.windows.net \
+    --database projet_data_eng \
+    --user sqladmin --password "***"
+\end{lstlisting}
+\FloatBarrier
+% ============== SECTION 5 : TESTS ==============
+\section{Phase de Tests}
+
+\subsection{Procédure de test}
+
+La procédure de test couvre l'ensemble du spectre technique et fonctionnel de l'entrepôt de données. Les tests sont implémentés en Python avec le framework \texttt{unittest}.
+
+\subsubsection{Tests techniques}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lp{6cm}l}
+\toprule
+\textbf{Catégorie} & \textbf{Tests} & \textbf{Statut} \\
+\midrule
+Schémas & Existence des 4 schémas (stg, dwh, dm, analytics) & \checkmark \\
+Dimensions & Existence et contenu des 6 tables de dimensions & \checkmark \\
+Faits & Existence des 6 tables de faits + contraintes FK & \checkmark \\
+Datamarts & Existence des 5 vues dm.vm\_* & \checkmark \\
+Index & Présence des index columnstore sur les faits & \checkmark \\
+\bottomrule
+\end{tabular}
+\caption{Tests techniques}
+\end{table}
+\FloatBarrier
+\subsubsection{Tests fonctionnels}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lp{6cm}l}
+\toprule
+\textbf{Catégorie} & \textbf{Tests} & \textbf{Statut} \\
+\midrule
+Référentiels & Présence des 5 départements Hauts-de-France & \checkmark \\
+Années & Présence des années de recensement (2010, 2015, 2021) & \checkmark \\
+PCS & Codes PCS complets (1-9) & \checkmark \\
+NAF & Sections NAF complètes (A-S) & \checkmark \\
+\bottomrule
+\end{tabular}
+\caption{Tests fonctionnels}
+\end{table}
+\FloatBarrier
+\subsubsection{Tests d'intégrité}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lp{6cm}l}
+\toprule
+\textbf{Test} & \textbf{Description} & \textbf{Statut} \\
+\midrule
+Orphelins temps\_id & Aucune FK orpheline vers dim\_temps & \checkmark \\
+Orphelins geo\_id & Aucune FK orpheline vers dim\_geographie & \checkmark \\
+Valeurs positives & Population et mesures $\geq$ 0 & \checkmark \\
+Cohérence dates & Années dans la plage 2010-2024 & \checkmark \\
+\bottomrule
+\end{tabular}
+\caption{Tests d'intégrité des données}
+\end{table}
+\FloatBarrier
+\subsubsection{Tests de bout en bout}
+
+Le test de bout en bout vérifie la chaîne complète :
+\begin{enumerate}
+    \item Chargement CSV $\rightarrow$ Staging
+    \item Staging $\rightarrow$ Dimensions
+    \item Staging $\rightarrow$ Faits
+    \item Faits $\rightarrow$ Datamarts (vues)
+    \item Datamarts $\rightarrow$ Tableau de bord
+\end{enumerate}
+
+\subsection{Exécution des tests}
+
+\begin{lstlisting}[caption=Exécution des tests]
+# Executer tous les tests
+python analytics/tests/test_dwh.py
+
+# Resultat attendu:
+# Tests executes: 18
+# Succes: 18
+# Echecs: 0
+# Erreurs: 0
+\end{lstlisting}
+
+\subsection{Résultats des tests}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Suite de tests} & \textbf{Total} & \textbf{OK} & \textbf{KO} \\
+\midrule
+TestSchemas & 4 & 4 & 0 \\
+TestDimensions & 5 & 5 & 0 \\
+TestFaits & 2 & 2 & 0 \\
+TestDatamarts & 3 & 3 & 0 \\
+TestIntegrite & 3 & 3 & 0 \\
+TestPerformance & 1 & 1 & 0 \\
+\midrule
+\textbf{TOTAL} & \textbf{18} & \textbf{18} & \textbf{0} \\
+\bottomrule
+\end{tabular}
+\caption{Résultats des tests unitaires}
+\end{table}
+
+% ============== SECTION 6 : DOCUMENTATION ==============
+\section{Documentation Technique}
+
+\subsection{Guide d'installation}
+
+\subsubsection{Prérequis}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{ll}
+\toprule
+\textbf{Composant} & \textbf{Version minimale} \\
+\midrule
+Python & 3.10+ \\
+Terraform & 1.5+ \\
+Azure CLI & 2.50+ \\
+ODBC Driver for SQL Server & 17 ou 18 \\
+\bottomrule
+\end{tabular}
+\caption{Prérequis logiciels}
+\end{table}
+
+\subsubsection{Installation}
+
+\begin{lstlisting}[caption=Procédure d'installation]
+# 1. Cloner le projet
+git clone <repository_url>
+cd Projet-Data-ENG
+
+# 2. Installer les dependances Python
+pip install -r requirements.txt
+
+# 3. Configurer les variables Terraform
+cd Terraform
+cp terraform.tfvars.example terraform.tfvars
+# Editer terraform.tfvars avec vos valeurs
+
+# 4. Deployer l'infrastructure Azure
+terraform init
+terraform plan
+terraform apply
+
+# 5. Deployer le Data Warehouse
+# (automatique si deploy_dwh = true dans tfvars)
+\end{lstlisting}
+
+\subsection{Procédure de configuration}
+
+\subsubsection{Variables d'environnement}
+
+\begin{lstlisting}[caption=Variables d'environnement requises]
+# Connexion Azure SQL
+export AZURE_SQL_SERVER="sqlelbrek-prod.database.windows.net"
+export AZURE_SQL_DATABASE="projet_data_eng"
+export AZURE_SQL_USER="sqladmin"
+export AZURE_SQL_PASSWORD="<votre_mot_de_passe>"
+\end{lstlisting}
+
+\subsubsection{Configuration Terraform}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lp{6cm}}
+\toprule
+\textbf{Variable} & \textbf{Description} \\
+\midrule
+resource\_group\_name & Nom du groupe de ressources Azure \\
+sql\_server\_name & Nom du serveur Azure SQL \\
+sql\_admin\_password & Mot de passe administrateur SQL \\
+deploy\_dwh & Activer le déploiement du DWH (true/false) \\
+\bottomrule
+\end{tabular}
+\caption{Variables Terraform principales}
+\end{table}
+\FloatBarrier
+\subsection{Dictionnaire des données}
+
+\subsubsection{Tables de dimensions}
+
+\begin{longtable}{lllp{4cm}}
+\toprule
+\textbf{Table} & \textbf{Colonne} & \textbf{Type} & \textbf{Description} \\
+\midrule
+\endhead
+dim\_temps & temps\_id & INT & Clé primaire \\
+& annee & INT & Année de référence \\
+& est\_annee\_recensement & BIT & Année INSEE (2010, 2015, 2021) \\
+\midrule
+dim\_geographie & geo\_id & INT & Clé primaire \\
+& departement\_code & NVARCHAR(3) & Code département (02, 59...) \\
+& commune\_code & NVARCHAR(10) & Code INSEE commune \\
+& niveau\_geo & NVARCHAR(20) & COMMUNE ou DEPARTEMENT \\
+\midrule
+dim\_demographie & demo\_id & INT & Clé primaire \\
+& sexe\_code & NVARCHAR(5) & M, F, \_T \\
+& pcs\_code & NVARCHAR(5) & Code PCS (1-9) \\
+& age\_code & NVARCHAR(20) & Tranche d'âge \\
+\midrule
+dim\_activite & activite\_id & INT & Clé primaire \\
+& naf\_section\_code & NVARCHAR(5) & Section NAF (A-S) \\
+& secteur\_activite & NVARCHAR(100) & Primaire/Secondaire/Tertiaire \\
+\bottomrule
+\caption{Dictionnaire des dimensions (extrait)}
+\end{longtable}
+\FloatBarrier
+\subsubsection{Tables de faits}
+
+\begin{longtable}{lllp{4cm}}
+\toprule
+\textbf{Table} & \textbf{Colonne} & \textbf{Type} & \textbf{Description} \\
+\midrule
+\endhead
+fait\_population & population\_id & BIGINT & Clé primaire \\
+& temps\_id & INT & FK vers dim\_temps \\
+& geo\_id & INT & FK vers dim\_geographie \\
+& population & FLOAT & Population totale \\
+\midrule
+fait\_revenus & revenu\_id & BIGINT & Clé primaire \\
+& revenu\_median & FLOAT & Niveau de vie médian (EUR/an) \\
+& taux\_pauvrete & FLOAT & Taux de pauvreté (\%) \\
+& rapport\_interdecile & FLOAT & Ratio D9/D1 \\
+\midrule
+fait\_entreprises & entreprise\_id & BIGINT & Clé primaire \\
+& nb\_creations\_entreprises & INT & Nombre de créations \\
+& nb\_creations\_micro & INT & Dont micro-entreprises \\
+\bottomrule
+\caption{Dictionnaire des faits (extrait)}
+\end{longtable}
+\FloatBarrier
+\subsection{Architecture des fichiers}
+
+\begin{lstlisting}[caption=Structure du projet]
+Projet-Data-ENG/
+|-- Terraform/
+|   |-- main.tf                 # Ressources Azure
+|   |-- variables.tf            # Variables
+|   |-- terraform.tfvars        # Configuration
+|   |-- sql/                    # Scripts SQL DWH
+|   |   |-- 001_create_schemas.sql
+|   |   |-- 002_create_dimensions.sql
+|   |   |-- 003_create_facts.sql
+|   |   |-- 004_populate_dimensions.sql
+|   |   |-- 005_create_datamarts.sql
+|   |   |-- 006_configure_security.sql
+|   |   |-- 007_configure_performance.sql
+|   |   +-- deploy_dwh.py
+|   +-- rbac_configuration.tf   # Securite RBAC
+|-- analytics/
+|   |-- etl/
+|   |   |-- run_etl.py          # Pipeline principal
+|   |   |-- load_dimensions.py  # Chargement dims
+|   |   +-- load_facts.py       # Chargement faits
+|   |-- tests/
+|   |   +-- test_dwh.py         # Tests unitaires
+|   +-- api/                    # API FastAPI
+|-- uploads/landing/csv/        # Donnees sources
++-- rapports/E5_Entrepot_Donnees/
+    +-- rapport_E5.tex          # Ce rapport
+\end{lstlisting}
+\FloatBarrier
+% ============== SECTION 7 : RETOUR D'EXPÉRIENCE ==============
+\section{Retour d'Expérience}
+
+\subsection{Pile technique utilisée}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{llp{5cm}}
+\toprule
+\textbf{Catégorie} & \textbf{Technologie} & \textbf{Usage} \\
+\midrule
+Cloud & Microsoft Azure & Hébergement de la base de données \\
+Base de données & Azure SQL Database & Entrepôt de données \\
+IaC & Terraform & Infrastructure as Code \\
+ETL & Python + pandas + SQLAlchemy & Scripts de transformation et chargement \\
+Stockage source & Fichiers locaux (CSV, JSON) & Données sources INSEE \\
+API & FastAPI & Exposition des données \\
+Tests & unittest (Python) & Tests automatisés \\
+\bottomrule
+\end{tabular}
+\caption{Stack technique du projet}
+\end{table}
+\FloatBarrier
+\subsection{Avantages identifiés}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Infrastructure as Code (Terraform)}
+    \begin{itemize}
+        \item Déploiement reproductible et versionné
+        \item Automatisation complète du provisioning Azure SQL Database
+        \item Facilité de recréation de l'environnement
+    \end{itemize}
+
+    \item \textbf{Pipeline ETL local simple et maîtrisé}
+    \begin{itemize}
+        \item Scripts Python exécutés localement, facilement débogables
+        \item Pas de dépendance à des services cloud supplémentaires
+        \item Contrôle total sur le processus de transformation
+    \end{itemize}
+
+    \item \textbf{Modèle en étoile}
+    \begin{itemize}
+        \item Requêtes analytiques performantes
+        \item Facilité de compréhension pour les analystes
+        \item Extensibilité pour ajouter de nouvelles dimensions/faits
+    \end{itemize}
+
+    \item \textbf{Séparation des schémas}
+    \begin{itemize}
+        \item Isolation claire staging / DWH / datamarts
+        \item Gestion fine des permissions par rôle
+        \item Maintenance simplifiée
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Difficultés rencontrées}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Drivers ODBC}
+    \begin{itemize}
+        \item Compatibilité variable selon les environnements
+        \item Solution : détection automatique du driver disponible
+    \end{itemize}
+
+    \item \textbf{Format des données sources INSEE}
+    \begin{itemize}
+        \item Codes géographiques composites (ex: "2024-DEP-02")
+        \item Solution : parsing et extraction des composantes
+    \end{itemize}
+
+    \item \textbf{Index Columnstore sur Azure SQL Basic/S0}
+    \begin{itemize}
+        \item Non supportés sur les SKU d'entrée de gamme
+        \item Solution : utiliser S2+ en production ou index classiques
+    \end{itemize}
+
+    \item \textbf{Volume limité des données sources}
+    \begin{itemize}
+        \item Données agrégées au niveau départemental uniquement
+        \item Solution : enrichissement futur avec données communales
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Recommandations}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Pour la production}
+    \begin{itemize}
+        \item Utiliser Azure SQL S2 ou supérieur pour les index columnstore
+        \item Configurer des alertes Azure Monitor sur les performances
+    \end{itemize}
+
+    \item \textbf{Pour l'évolution}
+    \begin{itemize}
+        \item Ajouter les données au niveau communal (3 782 communes)
+        \item Intégrer de nouvelles sources (SIRENE, DVF, etc.)
+        \item Implémenter un rafraîchissement incrémental des faits
+    \end{itemize}
+
+    \item \textbf{Pour la gouvernance}
+    \begin{itemize}
+        \item Documenter les lignages de données (data lineage)
+        \item Définir des SLA sur la fraîcheur des données
+    \end{itemize}
+\end{enumerate}
+
+% ============== CONCLUSION ==============
+\section{Conclusion}
+
+Ce projet de mise en place d'un entrepôt de données pour l'analyse territoriale de la région Hauts-de-France a permis de démontrer la mise en œuvre complète d'une solution de Business Intelligence moderne.
+
+\subsection{Objectifs atteints}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Modélisation} : Schéma en étoile avec 6 dimensions et 6 tables de faits, couvrant les domaines démographie, économie, social et logement
+    \item \textbf{Infrastructure} : Déploiement automatisé sur Azure SQL Database via Terraform
+    \item \textbf{ETL} : Pipeline Python local complet pour l'alimentation des dimensions et faits à partir des fichiers locaux
+    \item \textbf{Datamarts} : 5 vues agrégées par domaine métier + tableau de bord territorial
+    \item \textbf{Tests} : 18 tests unitaires couvrant structure, données et intégrité
+    \item \textbf{Documentation} : Guide d'installation, dictionnaire des données, architecture
+\end{itemize}
+
+\subsection{Compétences mobilisées}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lp{8cm}}
+\toprule
+\textbf{Compétence} & \textbf{Mise en œuvre} \\
+\midrule
+C13 & Modélisation en étoile, justification bottom-up, dimensions et faits \\
+C14 & Création DWH Azure SQL, configuration accès, procédures maintenance \\
+C15 & ETL Python, nettoyage données, respect schémas physiques \\
+\bottomrule
+\end{tabular}
+\caption{Compétences E5 mobilisées}
+\end{table}
+
+\subsection{Perspectives}
+
+L'entrepôt de données constitue une base solide pour de futures évolutions. Plusieurs axes d'amélioration ont été identifiés pour un projet ultérieur :
+
+\begin{itemize}
+    \item \textbf{Stockage centralisé} : Migrer les fichiers sources vers un \textbf{Azure Data Lake Storage (ADLS Gen2)} pour centraliser les données brutes dans le cloud et permettre un accès distribué
+    \item \textbf{Orchestration cloud} : Utiliser \textbf{Azure Data Factory} pour orchestrer les pipelines ETL au lieu de les exécuter localement, permettant une planification automatisée, un monitoring intégré et une meilleure fiabilité
+    \item \textbf{Traitement distribué} : Intégrer \textbf{Azure Databricks} (Spark) pour les traitements de données à grande échelle et les transformations complexes
+    \item \textbf{Sécurité des secrets} : Utiliser \textbf{Azure Key Vault} pour la gestion sécurisée des credentials au lieu de variables d'environnement
+    \item \textbf{Visualisation} : Développer des tableaux de bord \textbf{Power BI} connectés aux datamarts
+    \item \textbf{Nouvelles sources} : Intégrer de nouvelles sources de données (SIRENE, DVF, etc.)
+    \item \textbf{Machine Learning} : Mettre en place des analyses prédictives sur les tendances territoriales
+    \item \textbf{Extension géographique} : Étendre l'analyse à d'autres régions françaises
+\end{itemize}
+
+Ces points d'amélioration feront l'objet d'un projet et d'un rapport séparés.
+
+% ============== ANNEXES ==============
+\newpage
+\appendix
+\section{Annexes}
+
+\subsection{Scripts SQL complets}
+
+% TODO: Ajouter les scripts DDL complets
+
+\subsection{Configuration Terraform}
+
+% TODO: Ajouter les extraits de configuration pertinents
+
+\subsection{Code des ETL}
+
+% TODO: Ajouter les extraits de code Python
+
+\subsection{Glossaire}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lp{10cm}}
+\toprule
+\textbf{Terme} & \textbf{Définition} \\
+\midrule
+ETL & Extract, Transform, Load - Processus d'intégration de données \\
+DWH & Data Warehouse - Entrepôt de données \\
+Datamart & Sous-ensemble d'un entrepôt de données orienté métier \\
+Star Schema & Modèle en étoile - Modélisation dimensionnelle \\
+PCS & Professions et Catégories Socioprofessionnelles \\
+INSEE & Institut National de la Statistique et des Études Économiques \\
+\bottomrule
+\end{tabular}
+\caption{Glossaire des termes techniques}
+\end{table}
+
+\end{document}

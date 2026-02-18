@@ -1,0 +1,21 @@
+[project]
+name = "analytics-api"
+version = "0.1.0"
+description = "API REST pour exposer les tables preparees du projet Projet-Data-ENG"
+authors = [{name = "Projet Data ENG"}]
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.111.0",
+  "uvicorn[standard]>=0.30.0",
+  "pydantic-settings>=2.0.0",
+  "sqlalchemy>=2.0.19",
+  "pyodbc>=4.0.39",
+  "pandas>=2.2.0"
+]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.5.0", "pytest>=7.4.0"]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"

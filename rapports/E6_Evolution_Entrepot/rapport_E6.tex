@@ -1,0 +1,1966 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% RAPPORT E6 - EVOLUTION D'UN ENTREPOT DE DONNEES
+% Projet Data Engineering - Region Hauts-de-France
+% Auteur: Hamza Elbrek
+% Date: Fevrier 2026
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[12pt,a4paper]{article}
+
+% ===================== PACKAGES =====================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fontspec}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage[table]{xcolor}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{enumitem}
+\usepackage{etoolbox}
+\usepackage{caption}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows, positioning, fit}
+
+\floatplacement{table}{H}
+\floatplacement{figure}{H}
+\AtEndEnvironment{figure}{\FloatBarrier}
+
+% ===================== COULEURS =====================
+\definecolor{azure}{RGB}{0, 127, 255}
+\definecolor{darkblue}{RGB}{0, 51, 102}
+\definecolor{codebg}{RGB}{245, 245, 245}
+\definecolor{codegreen}{RGB}{0, 128, 0}
+\definecolor{codegray}{RGB}{128, 128, 128}
+\definecolor{warnorange}{RGB}{230, 126, 34}
+\definecolor{successgreen}{RGB}{39, 174, 96}
+
+% ===================== HYPERREF =====================
+\hypersetup{
+    colorlinks=true,
+    linkcolor=darkblue,
+    urlcolor=azure,
+    citecolor=darkblue,
+    pdftitle={Rapport E6 - Evolution d'un Entrepot de Donnees},
+    pdfauthor={Hamza Elbrek}
+}
+
+% ===================== LISTINGS =====================
+\lstdefinelanguage{SQL}{
+    keywords={CREATE, TABLE, ALTER, ADD, UPDATE, SET, INSERT, INTO, SELECT,
+      FROM, WHERE, JOIN, LEFT, INNER, ON, AS, BEGIN, END, IF, ELSE, WHEN,
+      THEN, CASE, AND, OR, NOT, NULL, DEFAULT, PRIMARY, KEY, FOREIGN,
+      REFERENCES, INDEX, VIEW, PROCEDURE, EXEC, DECLARE, VARCHAR, INT,
+      DATETIME, BIT, NVARCHAR, FLOAT, GETDATE, EXISTS, MERGE, USING,
+      MATCHED, TARGET, SOURCE, OUTPUT, GO, SCHEMA, GRANT, REVOKE, ROLE,
+      BACKUP, DATABASE, TO, DISK, WITH, DIFFERENTIAL, LOG, RESTORE,
+      COLUMNSTORE, CLUSTERED, NONCLUSTERED, STATISTICS, IDENTITY, CAST,
+      FORMAT, COMPRESSION, NAME, STATS, FILEGROUP, VALUES, COUNT, SUM,
+      AVG, GROUP, BY, ORDER, DESC, TOP, ISNULL},
+    sensitive=false,
+    morecomment=[l]{--},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]',
+}
+
+\lstdefinelanguage{Python}{
+    keywords={def, class, import, from, return, if, elif, else, for, while,
+      try, except, finally, with, as, pass, break, continue, and, or, not,
+      in, is, True, False, None, self, lambda, yield, raise, assert},
+    sensitive=true,
+    morecomment=[l]{\#},
+    morestring=[b]",
+    morestring=[b]',
+}
+
+\lstset{
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    captionpos=b,
+    commentstyle=\color{codegreen}\itshape,
+    keywordstyle=\color{azure}\bfseries,
+    stringstyle=\color{codegray},
+    frame=single,
+    framerule=0pt,
+    xleftmargin=0.5cm,
+    xrightmargin=0.5cm,
+    numbers=left,
+    numberstyle=\tiny\color{codegray},
+    numbersep=8pt,
+    showstringspaces=false,
+    tabsize=4
+}
+
+% ===================== EN-TETE / PIED =====================
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\leftmark}
+\fancyhead[R]{Projet E6 -- Evolution de l'Entrepot}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% ===================== COMMANDES PERSONNALISEES =====================
+\newcommand{\definition}[2]{%
+    \begin{center}
+    \fcolorbox{darkblue}{blue!5}{%
+        \begin{minipage}{0.92\textwidth}
+            \vspace{0.3cm}
+            \textbf{\textcolor{darkblue}{\large Definition : #1}}\\[0.3cm]
+            #2
+            \vspace{0.3cm}
+        \end{minipage}
+    }
+    \end{center}
+    \vspace{0.3cm}
+}
+
+\newcommand{\explicationtechnique}[2]{%
+    \begin{center}
+    \fcolorbox{codegreen}{green!3}{%
+        \begin{minipage}{0.92\textwidth}
+            \vspace{0.3cm}
+            \textbf{\textcolor{codegreen}{Explication technique : #1}}\\[0.3cm]
+            #2
+            \vspace{0.3cm}
+        \end{minipage}
+    }
+    \end{center}
+    \vspace{0.3cm}
+}
+
+\newcommand{\pointimportant}[1]{%
+    \begin{center}
+    \fcolorbox{warnorange}{orange!5}{%
+        \begin{minipage}{0.92\textwidth}
+            \vspace{0.2cm}
+            \textbf{\textcolor{warnorange}{Point important :}} #1
+            \vspace{0.2cm}
+        \end{minipage}
+    }
+    \end{center}
+    \vspace{0.3cm}
+}
+
+% ===================== DEBUT DU DOCUMENT =====================
+\begin{document}
+
+% ===================== PAGE DE TITRE =====================
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+
+    {\Huge\bfseries Rapport Professionnel E6\par}
+    \vspace{0.5cm}
+    {\LARGE Evolution d'un Entrepot de Donnees\par}
+
+    \vspace{1.5cm}
+
+    {\large Projet Data Engineering\par}
+    {\large Analyse Territoriale -- Region Hauts-de-France\par}
+
+    \vspace{2cm}
+
+    {\Large\bfseries Competences evaluees :\par}
+    \vspace{0.5cm}
+    \begin{tabular}{lp{10cm}}
+        \textbf{C16} & Gerer l'entrepot de donnees a l'aide des outils d'administration et de supervision dans le respect du RGPD, afin de garantir les bons acces, l'integration des evolutions structurelles et son maintien en condition operationnelle dans le temps. \\[0.3cm]
+        \textbf{C17} & Implementer des variations dans les dimensions de l'entrepot de donnees en appliquant la methode adaptee en fonction du type de changement demande afin d'historiser les evolutions de l'activite de l'organisation et maintenir ainsi une bonne capacite d'analyse. \\
+    \end{tabular}
+
+    \vfill
+
+    {\large
+    \begin{tabular}{rl}
+        \textbf{Auteur :} & Hamza Elbrek \\
+        \textbf{Formation :} & Data Engineer \\
+        \textbf{Date :} & Fevrier 2026 \\
+    \end{tabular}
+    \par}
+
+\end{titlepage}
+
+% ===================== TABLE DES MATIERES =====================
+\newpage
+\tableofcontents
+\newpage
+
+
+%=================================================================
+%                     INTRODUCTION
+%=================================================================
+\section{Introduction}
+
+\subsection{Contexte du projet}
+
+Ce rapport s'inscrit dans la continuite du projet E5 au cours duquel un entrepot de donnees (Data Warehouse) a ete mis en place pour centraliser les donnees territoriales de la region \textbf{Hauts-de-France}. L'entrepot, heberge sur \textbf{Microsoft Azure}, exploite un schema en etoile compose de 6 dimensions et 7 tables de faits, alimente par des ETL Python et deploye via \textbf{Terraform}.
+
+Le projet E6 porte sur l'\textbf{evolution} de cet entrepot existant. Il ne s'agit plus de construire un entrepot de zero, mais de le \textbf{maintenir en conditions operationnelles}, d'y \textbf{integrer de nouvelles sources}, de \textbf{gerer les acces}, et surtout d'\textbf{implementer des variations dimensionnelles} (Slowly Changing Dimensions) pour historiser les changements au fil du temps.
+
+\definition{Maintien en Conditions Operationnelles (MCO)}{%
+Le MCO designe l'ensemble des activites necessaires pour garantir qu'un systeme informatique reste fonctionnel, performant et disponible dans le temps. Cela inclut la supervision (monitoring), la sauvegarde (backup), la gestion des acces, la journalisation des erreurs, et la resolution proactive des incidents. En contexte Data Warehouse, le MCO est critique car les donnees alimentent des decisions strategiques : une indisponibilite ou une corruption de donnees peut avoir un impact direct sur le pilotage de l'organisation.
+}
+
+\subsection{Rappel de l'architecture existante (E5)}
+
+L'entrepot de donnees repose sur l'architecture suivante :
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Couche d'ingestion} : Fichiers locaux (CSV, Parquet) charges directement dans la base via les scripts ETL Python. Les donnees sources sont organisees dans le repertoire \texttt{uploads/landing/csv/}
+    \item \textbf{Couche de stockage} : Azure SQL Server avec un schema en etoile :
+    \begin{itemize}
+        \item 4 schemas : \texttt{stg} (staging), \texttt{dwh} (entrepot), \texttt{dm} (datamarts), \texttt{analytics} (vues)
+        \item 6 dimensions : temps, geographie, demographie, activite, indicateur, logement
+        \item 7 tables de faits : population, evenements demographiques, entreprises, emploi, revenus, logement, menages
+    \end{itemize}
+    \item \textbf{Couche ETL} : Scripts Python (pandas, SQLAlchemy) orchestres par \texttt{run\_etl.py}
+    \item \textbf{Couche infrastructure} : Terraform (Infrastructure as Code) pour le provisionnement Azure
+    \item \textbf{Couche securite} : 4 roles RBAC (ETL, Analyste, BI Reader, Admin)
+\end{itemize}
+
+\subsection{Objectifs de l'evolution E6}
+
+Les objectifs de ce projet sont :
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Mettre en place une methodologie de maintenance} structuree (approche ITIL) avec outillage de suivi
+    \item \textbf{Configurer la journalisation} des alertes et erreurs pour la supervision de l'entrepot
+    \item \textbf{Implementer une strategie de backup} avec export BACPAC vers le Data Lake
+    \item \textbf{Integrer de nouvelles sources de donnees} a l'entrepot existant
+    \item \textbf{Gerer les acces} et documenter les procedures d'evolution et de scalabilite
+    \item \textbf{Modeliser et implementer les variations de dimensions} (SCD Type 1, 2 et 3)
+    \item \textbf{Adapter les ETL} pour gerer ces variations
+    \item \textbf{Documenter} l'ensemble des evolutions avec mise a jour des modeles de donnees
+\end{enumerate}
+
+
+%=================================================================
+%        SECTION 2 : METHODOLOGIE DE MAINTENANCE (ITIL)
+%=================================================================
+\newpage
+\section{Methodologie et outillage de maintenance}
+
+\subsection{Introduction a ITIL}
+
+\definition{ITIL (Information Technology Infrastructure Library)}{%
+ITIL est un ensemble de bonnes pratiques pour la gestion des services informatiques (ITSM -- IT Service Management). Cree dans les annees 1980 par le gouvernement britannique, ITIL fournit un cadre structure pour planifier, livrer et maintenir des services IT de qualite. Il est organise en processus couvrant tout le cycle de vie d'un service : de sa conception a son exploitation quotidienne.
+
+\medskip
+
+Dans le contexte d'un entrepot de donnees, ITIL nous aide a structurer :
+\begin{itemize}
+    \item \textbf{La gestion des incidents} : Comment reagir quand un ETL echoue ou qu'une donnee est corrompue ?
+    \item \textbf{La gestion des changements} : Comment integrer une nouvelle source de donnees sans casser l'existant ?
+    \item \textbf{La gestion des problemes} : Comment identifier et corriger la cause racine d'erreurs recurrentes ?
+\end{itemize}
+}
+
+\subsection{Processus ITIL adaptes au Data Warehouse}
+
+\subsubsection{Gestion des incidents}
+
+\definition{Incident}{%
+Un incident est tout evenement non planifie qui interrompt ou degrade la qualite d'un service IT. Dans le contexte d'un entrepot de donnees, un incident peut etre : l'echec d'un pipeline ETL, l'indisponibilite de la base de donnees, des donnees manquantes dans un datamart, ou un temps de reponse degrade sur les requetes analytiques.
+}
+
+Le processus de gestion des incidents suit le flux suivant :
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Detection} : L'incident est detecte automatiquement via le systeme de journalisation (alertes sur erreurs ETL, monitoring de la base) ou signale par un utilisateur.
+    \item \textbf{Enregistrement} : L'incident est cree dans l'outil de ticketing avec : date, description, impact, urgence.
+    \item \textbf{Classification et priorisation} : L'incident est classe selon la matrice de priorisation (cf. section \ref{sec:priorisation}).
+    \item \textbf{Investigation et diagnostic} : L'equipe consulte les logs, identifie le composant defaillant.
+    \item \textbf{Resolution} : Application du correctif (relance ETL, correction de donnees, ajustement de configuration).
+    \item \textbf{Cloture} : Validation que le service est retabli, mise a jour du ticket, documentation de la solution.
+\end{enumerate}
+
+\subsubsection{Gestion des changements}
+
+\definition{Changement (Change Management)}{%
+La gestion des changements est le processus ITIL qui encadre toute modification apportee a l'infrastructure ou aux services IT. L'objectif est de minimiser les risques d'interruption lors de l'introduction de changements. Chaque changement passe par une evaluation d'impact, une approbation, une implementation controlee, et une validation post-deploiement.
+
+\medskip
+
+Exemples de changements dans un entrepot de donnees :
+\begin{itemize}
+    \item Ajout d'une nouvelle source de donnees (nouveau fichier CSV, nouvelle API)
+    \item Modification du schema d'une dimension (ajout de colonnes SCD)
+    \item Ajout d'un nouveau datamart pour un nouveau besoin d'analyse
+    \item Mise a jour d'un ETL suite a un changement de format des donnees sources
+\end{itemize}
+}
+
+\subsubsection{Gestion des problemes}
+
+\definition{Probleme vs Incident}{%
+Un \textbf{probleme} est la cause sous-jacente d'un ou plusieurs incidents. La gestion des problemes vise a identifier et eliminer les causes racines pour eviter la recurrence des incidents.
+
+\medskip
+
+\textbf{Exemple concret :}
+\begin{itemize}
+    \item \textit{Incident} : Le chargement des donnees de population echoue le 15 fevrier 2026
+    \item \textit{Incident} : Le meme chargement echoue le 1er mars 2026
+    \item \textit{Probleme identifie} : Le fichier source INSEE a change de format (nouvelle colonne ajoutee) et l'ETL ne gere pas les colonnes inattendues
+    \item \textit{Solution} : Adapter l'ETL pour accepter dynamiquement les colonnes et journaliser les colonnes nouvelles
+\end{itemize}
+}
+
+\subsection{Matrice de priorisation}
+\label{sec:priorisation}
+
+La priorisation des incidents et des demandes de changement repose sur deux criteres : l'\textbf{impact} (combien d'utilisateurs ou de processus sont affectes) et l'\textbf{urgence} (a quelle vitesse le service doit etre retabli).
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Impact / Urgence} & \textbf{Haute} & \textbf{Moyenne} & \textbf{Basse} \\
+\hline
+\textbf{Eleve} (tous les utilisateurs) & \cellcolor{red!30}P1 -- Critique & \cellcolor{orange!30}P2 -- Haute & \cellcolor{yellow!30}P3 -- Moyenne \\
+\hline
+\textbf{Moyen} (un service/equipe) & \cellcolor{orange!30}P2 -- Haute & \cellcolor{yellow!30}P3 -- Moyenne & \cellcolor{green!20}P4 -- Basse \\
+\hline
+\textbf{Faible} (un utilisateur) & \cellcolor{yellow!30}P3 -- Moyenne & \cellcolor{green!20}P4 -- Basse & \cellcolor{green!20}P4 -- Basse \\
+\hline
+\end{tabular}
+\caption{Matrice de priorisation Impact $\times$ Urgence}
+\end{table}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{P1 -- Critique} : Base de donnees inaccessible, perte de donnees. Resolution immediate (< 1h).
+    \item \textbf{P2 -- Haute} : ETL en echec, datamart non rafraichi. Resolution dans la journee (< 8h).
+    \item \textbf{P3 -- Moyenne} : Performance degradee, acces manquant pour un utilisateur. Resolution sous 48h.
+    \item \textbf{P4 -- Basse} : Demande d'evolution, amelioration cosmetique. Planification dans le sprint suivant.
+\end{itemize}
+
+\subsection{Outillage de ticketing}
+
+Pour le suivi des taches de maintenance, nous utilisons \textbf{GitHub Issues} comme outil de ticketing, integre directement au depot du projet. Chaque ticket suit une structure normalisee :
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Labels de type} : \texttt{incident}, \texttt{changement}, \texttt{probleme}, \texttt{maintenance}
+    \item \textbf{Labels de priorite} : \texttt{P1-critique}, \texttt{P2-haute}, \texttt{P3-moyenne}, \texttt{P4-basse}
+    \item \textbf{Labels de composant} : \texttt{etl}, \texttt{sql}, \texttt{infrastructure}, \texttt{securite}, \texttt{datamart}
+    \item \textbf{Milestones} : Regroupement par sprint ou par version de l'entrepot
+\end{itemize}
+
+\explicationtechnique{Pourquoi GitHub Issues ?}{%
+GitHub Issues est un outil de ticketing leger, directement integre au gestionnaire de code source. Il permet de :
+\begin{itemize}
+    \item Lier un ticket a un commit ou une pull request (tracabilite code $\leftrightarrow$ incident)
+    \item Utiliser des templates de tickets pour standardiser les informations collectees
+    \item Automatiser le workflow via GitHub Actions (fermeture automatique de tickets, notifications)
+    \item Offrir un tableau Kanban (GitHub Projects) pour la visualisation de l'avancement
+\end{itemize}
+Dans un contexte professionnel plus large, des outils comme \textbf{Jira}, \textbf{ServiceNow} ou \textbf{GLPI} seraient utilises pour une gestion ITIL complete.
+}
+
+\subsection{Indicateurs de suivi (KPIs)}
+
+\definition{KPI (Key Performance Indicator)}{%
+Un KPI est un indicateur cle de performance, c'est-a-dire une mesure quantifiable qui permet d'evaluer l'efficacite d'un processus ou d'un service par rapport a un objectif defini. Les KPIs permettent de prendre des decisions basees sur des donnees plutot que sur l'intuition.
+}
+
+Les KPIs suivis pour la maintenance de l'entrepot sont :
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|l|X|l|}
+\hline
+\textbf{KPI} & \textbf{Description} & \textbf{Objectif} \\
+\hline
+Taux de disponibilite & Pourcentage du temps ou l'entrepot est accessible et fonctionnel & $\geq$ 99,5\% \\
+\hline
+MTTR & Mean Time To Resolve -- Temps moyen de resolution d'un incident & < 4h \\
+\hline
+Taux de succes ETL & Pourcentage d'executions ETL sans erreur sur le mois & $\geq$ 95\% \\
+\hline
+Nb incidents/mois & Nombre total d'incidents enregistres par mois & Tendance $\downarrow$ \\
+\hline
+Fraicheur des donnees & Delai entre la disponibilite d'une source et son integration dans le DWH & < 24h \\
+\hline
+\end{tabularx}
+\caption{KPIs de suivi de la maintenance du Data Warehouse}
+\end{table}
+
+
+%=================================================================
+%     SECTION 3 : JOURNALISATION DES ALERTES ET ERREURS
+%=================================================================
+\newpage
+\section{Journalisation des alertes et des erreurs}
+
+\subsection{Qu'est-ce que la journalisation ?}
+
+\definition{Journalisation (Logging)}{%
+La journalisation est le processus d'enregistrement chronologique des evenements qui se produisent dans un systeme informatique. Chaque entree de journal (log) contient typiquement : un horodatage (timestamp), un niveau de severite (INFO, WARNING, ERROR, CRITICAL), la source de l'evenement, et un message descriptif.
+
+\medskip
+
+La journalisation est essentielle pour :
+\begin{itemize}
+    \item \textbf{Le diagnostic} : Comprendre ce qui s'est passe quand un probleme survient
+    \item \textbf{L'audit} : Tracer qui a fait quoi et quand (conformite RGPD)
+    \item \textbf{La supervision} : Detecter proactivement les anomalies avant qu'elles ne deviennent des incidents
+    \item \textbf{La performance} : Mesurer les temps d'execution des ETL et detecter les degradations
+\end{itemize}
+}
+
+\subsection{Niveaux de journalisation}
+
+\definition{Niveaux de severite des logs}{%
+Les logs sont classes par niveau de severite, du moins critique au plus critique :
+\begin{itemize}
+    \item \textbf{DEBUG} : Informations detaillees pour le developpement. Ex: \textit{``Connexion a la base etablie en 0.3s''}
+    \item \textbf{INFO} : Evenements normaux du fonctionnement. Ex: \textit{``Chargement de dim\_temps : 14 lignes inserees''}
+    \item \textbf{WARNING} : Situation anormale qui n'empeche pas le fonctionnement. Ex: \textit{``Table stg\_emploi vide, etape ignoree''}
+    \item \textbf{ERROR} : Erreur qui empeche une fonctionnalite. Ex: \textit{``Echec du chargement de fait\_revenus : cle etrangere invalide''}
+    \item \textbf{CRITICAL} : Erreur grave qui met en peril le systeme. Ex: \textit{``Connexion a la base impossible, pipeline interrompu''}
+\end{itemize}
+}
+
+\subsection{Architecture de journalisation mise en place}
+
+Notre systeme de journalisation opere a deux niveaux complementaires :
+
+\subsubsection{Journalisation applicative (Python)}
+
+Les scripts ETL utilisent le module \texttt{logging} de Python pour produire des logs structures :
+
+\begin{lstlisting}[language=Python, caption={Configuration du logging dans les ETL}]
+import logging
+
+# Configuration du logger avec sortie fichier + console
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(name)s - %(message)s',
+    handlers=[
+        logging.FileHandler('etl_pipeline.log'),
+        logging.StreamHandler()  # Sortie console
+    ]
+)
+logger = logging.getLogger('etl_pipeline')
+
+# Exemples d'utilisation
+logger.info("Debut du chargement de dim_geographie")
+logger.warning("Table staging vide, etape ignoree")
+logger.error("Cle etrangere invalide pour fait_revenus")
+\end{lstlisting}
+
+\explicationtechnique{Pourquoi remplacer print() par logging ?}{%
+Les instructions \texttt{print()} sont ephemeres : elles s'affichent dans la console puis disparaissent. Le module \texttt{logging} offre des avantages critiques :
+\begin{itemize}
+    \item \textbf{Persistance} : Les logs sont ecrits dans un fichier consultable apres l'execution
+    \item \textbf{Niveaux de severite} : On peut filtrer pour ne voir que les erreurs en production
+    \item \textbf{Format standardise} : Chaque log a un horodatage, un niveau, et un contexte
+    \item \textbf{Rotation} : Les fichiers de log peuvent etre archives automatiquement quand ils deviennent trop volumineux
+    \item \textbf{Destinations multiples} : Un meme log peut etre envoye en fichier, en console, et vers un service de monitoring
+\end{itemize}
+}
+
+\subsubsection{Journalisation en base de donnees (SQL)}
+
+En complement des logs applicatifs, une table de journalisation SQL enregistre chaque etape de l'ETL directement dans l'entrepot :
+
+\begin{lstlisting}[language=SQL, caption={Table de journalisation ETL}]
+CREATE TABLE dwh.log_etl (
+    log_id          INT IDENTITY(1,1) PRIMARY KEY,
+    date_execution  DATETIME DEFAULT GETDATE(),
+    etape           NVARCHAR(100),   -- 'load_dimensions', 'load_facts'...
+    table_cible     NVARCHAR(100),   -- 'dwh.dim_temps', 'dwh.fait_revenus'
+    statut          NVARCHAR(20),    -- 'DEBUT', 'SUCCES', 'ERREUR', 'WARNING'
+    nb_lignes       INT DEFAULT 0,
+    duree_secondes  FLOAT DEFAULT 0,
+    message         NVARCHAR(500),
+    utilisateur     NVARCHAR(100) DEFAULT SYSTEM_USER
+);
+
+CREATE TABLE dwh.log_erreurs (
+    erreur_id       INT IDENTITY(1,1) PRIMARY KEY,
+    date_erreur     DATETIME DEFAULT GETDATE(),
+    source          NVARCHAR(100),   -- Script ou procedure source
+    type_erreur     NVARCHAR(50),    -- 'SQL', 'ETL', 'CONNEXION', 'DONNEES'
+    message_erreur  NVARCHAR(MAX),
+    stack_trace     NVARCHAR(MAX),
+    est_resolu      BIT DEFAULT 0,
+    date_resolution DATETIME NULL
+);
+\end{lstlisting}
+
+\pointimportant{La double journalisation (fichier Python + table SQL) assure la tracabilite meme si l'un des deux systemes est indisponible. Les logs Python capturent les erreurs de connexion a la base, tandis que les logs SQL offrent une vue requetable pour les tableaux de bord de supervision.}
+
+\subsection{Fonction Python de journalisation en base}
+
+\begin{lstlisting}[language=Python, caption={Fonction log\_etl\_db() dans les scripts ETL}]
+def log_etl_db(engine, etape, table_cible, statut,
+               nb_lignes=0, duree=0, message=''):
+    """Enregistre un evenement ETL dans dwh.log_etl."""
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                INSERT INTO dwh.log_etl
+                  (etape, table_cible, statut, nb_lignes,
+                   duree_secondes, message)
+                VALUES (:etape, :table, :statut, :nb,
+                        :duree, :msg)
+            """), {
+                'etape': etape, 'table': table_cible,
+                'statut': statut, 'nb': nb_lignes,
+                'duree': duree, 'msg': message
+            })
+            conn.commit()
+    except Exception as e:
+        logger.error(f"Impossible de loguer en BDD: {e}")
+\end{lstlisting}
+
+\subsection{Vue de monitoring des alertes}
+
+Une vue analytique permet de superviser les alertes et erreurs depuis un outil BI :
+
+\begin{lstlisting}[language=SQL, caption={Vue de monitoring pour la supervision}]
+CREATE VIEW analytics.v_monitoring_alertes AS
+SELECT
+    CAST(date_execution AS DATE) AS jour,
+    etape,
+    statut,
+    COUNT(*) AS nb_evenements,
+    SUM(CASE WHEN statut = 'ERREUR' THEN 1 ELSE 0 END) AS nb_erreurs,
+    AVG(duree_secondes) AS duree_moyenne_sec
+FROM dwh.log_etl
+GROUP BY CAST(date_execution AS DATE), etape, statut;
+\end{lstlisting}
+
+
+%=================================================================
+%     SECTION 4 : STRATEGIE DE BACKUP
+%=================================================================
+\newpage
+\section{Strategie de backup : export BACPAC vers le Data Lake}
+
+\subsection{Concepts fondamentaux de la sauvegarde}
+
+\definition{Backup (Sauvegarde)}{%
+Un backup est une copie de securite des donnees et/ou de la structure d'une base de donnees, realisee a un instant donne, permettant de restaurer le systeme en cas de perte de donnees, de corruption, ou de sinistre.
+
+\medskip
+
+Il existe trois types principaux de sauvegarde :
+\begin{itemize}
+    \item \textbf{Backup complet (Full)} : Copie integrale de toute la base de donnees. C'est la sauvegarde la plus fiable mais aussi la plus longue et la plus volumineuse.
+    \item \textbf{Backup differentiel (Differential)} : Copie uniquement des donnees modifiees \textit{depuis le dernier backup complet}. Plus rapide qu'un full, mais necessite le dernier backup complet pour la restauration.
+    \item \textbf{Backup du journal de transactions (Transaction Log)} : Copie des transactions survenues depuis le dernier backup de log. Permet une restauration \textit{point-in-time} (a la seconde pres).
+\end{itemize}
+}
+
+\definition{RPO et RTO}{%
+Deux metriques essentielles guident la strategie de backup :
+\begin{itemize}
+    \item \textbf{RPO (Recovery Point Objective)} : La quantite maximale de donnees qu'on accepte de perdre. Un RPO de 1 heure signifie qu'on tolere de perdre au maximum 1 heure de donnees.
+    \item \textbf{RTO (Recovery Time Objective)} : Le temps maximal acceptable pour restaurer le service apres un incident. Un RTO de 4 heures signifie que le systeme doit etre de nouveau operationnel dans les 4 heures.
+\end{itemize}
+
+\medskip
+
+\textbf{Pour notre entrepot :}
+\begin{itemize}
+    \item RPO = 24h (les donnees sont chargees quotidiennement, une perte d'une journee est acceptable)
+    \item RTO = 4h (les analystes peuvent tolerer une indisponibilite d'une demi-journee)
+\end{itemize}
+}
+
+\definition{BACPAC}{%
+Un fichier \texttt{.bacpac} est un format d'export natif d'Azure SQL Database qui contient a la fois le \textbf{schema} (structure des tables, vues, procedures) et les \textbf{donnees} de la base. Contrairement a un backup classique (\texttt{BACKUP DATABASE ... TO DISK}, non disponible sur Azure SQL Database), l'export BACPAC est lance via Azure CLI (\texttt{az sql db export}) et produit un fichier portable qui peut etre stocke dans n'importe quel stockage blob. Ce fichier peut ensuite etre reimporte dans n'importe quel serveur Azure SQL via \texttt{az sql db import}.
+}
+
+\subsection{Strategie de backup mise en place}
+
+Notre strategie combine deux niveaux complementaires :
+
+\begin{enumerate}
+    \item \textbf{Backups automatiques Azure (PITR)} : Geres par la plateforme, ils permettent une restauration point-in-time sur les 14 derniers jours.
+    \item \textbf{Export BACPAC vers le Data Lake} : Apres chaque execution de l'ETL, un script Python exporte la base complete en fichier \texttt{.bacpac} horodate vers le Data Lake ADLS Gen2. Cela fournit un backup portable, independant de la plateforme Azure SQL.
+\end{enumerate}
+
+\subsubsection{Backup automatique Azure SQL}
+
+\explicationtechnique{Azure Automated Backups}{%
+Azure SQL Database effectue automatiquement :
+\begin{itemize}
+    \item \textbf{Backup complet} : Chaque semaine
+    \item \textbf{Backup differentiel} : Toutes les 12 a 24 heures
+    \item \textbf{Backup du log de transactions} : Toutes les 5 a 10 minutes
+\end{itemize}
+La retention par defaut est de 7 jours (configurable jusqu'a 35 jours). Ces sauvegardes sont stockees dans un stockage geo-redondant (RA-GRS) et permettent une restauration \textit{point-in-time}.
+}
+
+\subsubsection{Export BACPAC vers le Data Lake (etape 5 du pipeline ETL)}
+
+\pointimportant{Sur Azure SQL Database, les commandes \texttt{BACKUP DATABASE ... TO DISK} et \texttt{RESTORE DATABASE ... FROM DISK} ne sont pas disponibles. Notre approche utilise \texttt{az sql db export} pour generer un fichier \texttt{.bacpac} directement dans le Data Lake ADLS Gen2, comme derniere etape du pipeline ETL.}
+
+Le script \texttt{backup\_to\_datalake.py} est integre au pipeline ETL comme etape 5. Il s'execute automatiquement apres le rafraichissement des vues (etape 4) :
+
+\begin{lstlisting}[language=Python, caption={Script de backup BACPAC vers Data Lake (backup\_to\_datalake.py)}]
+def export_bacpac(config, resource_group):
+    """Exporte la base Azure SQL en .bacpac via az sql db export."""
+    storage_account = config['storage_account']
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    blob_name = f"backups/{config['database']}_{timestamp}.bacpac"
+
+    # Recuperer la cle du storage account
+    result = subprocess.run(
+        ['az', 'storage', 'account', 'keys', 'list',
+         '--account-name', storage_account,
+         '--resource-group', resource_group,
+         '--query', '[0].value', '-o', 'tsv'],
+        capture_output=True, text=True)
+    storage_key = result.stdout.strip()
+
+    storage_uri = (f"https://{storage_account}.blob.core.windows.net"
+                   f"/raw/{blob_name}")
+
+    # Exporter la base en .bacpac directement vers le blob
+    subprocess.run([
+        'az', 'sql', 'db', 'export',
+        '--admin-user', config['user'],
+        '--admin-password', config['password'],
+        '--name', config['database'],
+        '--server', config['server'],
+        '--resource-group', resource_group,
+        '--storage-key', storage_key,
+        '--storage-key-type', 'StorageAccessKey',
+        '--storage-uri', storage_uri,
+    ], capture_output=True, text=True, timeout=1800)
+
+    return blob_name
+\end{lstlisting}
+
+\explicationtechnique{Pourquoi BACPAC plutot que des procedures SQL ?}{%
+L'approche initiale utilisait des procedures stockees SQL (\texttt{sp\_backup\_complet} via \texttt{CREATE DATABASE ... AS COPY OF}, \texttt{sp\_backup\_partiel} via copie de tables). Ces approches posaient plusieurs problemes :
+\begin{itemize}
+    \item \texttt{CREATE DATABASE ... AS COPY OF} doit etre execute depuis la base \texttt{master} et cree une base independante avec son propre cout de facturation.
+    \item La copie de tables dans \texttt{staging} consomme de l'espace dans la base elle-meme.
+    \item Certaines DMV comme \texttt{sys.dm\_database\_backups} ne sont pas toujours accessibles selon le niveau de service.
+\end{itemize}
+L'export BACPAC via Azure CLI resout ces problemes : le fichier est stocke dans le Data Lake (stockage bon marche), il est portable, et la commande \texttt{az sql db export} est fiable et documentee par Microsoft.
+}
+
+Le script gere egalement le \textbf{nettoyage automatique} des anciens backups. Les fichiers \texttt{.bacpac} de plus de 30 jours (configurable) sont supprimes du Data Lake :
+
+\begin{lstlisting}[language=Python, caption={Nettoyage automatique des anciens backups}]
+def cleanup_old_backups(config, resource_group, retention_days=30):
+    """Supprime les .bacpac de plus de retention_days jours."""
+    # Lister les blobs dans raw/backups/
+    result = subprocess.run(
+        ['az', 'storage', 'blob', 'list',
+         '--account-name', config['storage_account'],
+         '--container-name', 'raw', '--prefix', 'backups/',
+         '--query', '[].{name:name}', '-o', 'tsv'],
+        capture_output=True, text=True)
+
+    for blob_name in result.stdout.strip().split('\n'):
+        # Extraire la date du nom (db_YYYYMMDD_HHMMSS.bacpac)
+        blob_date = datetime.strptime(...)
+        if (datetime.now() - blob_date).days > retention_days:
+            subprocess.run(['az', 'storage', 'blob', 'delete',
+                '--account-name', config['storage_account'],
+                '--container-name', 'raw',
+                '--name', blob_name])
+\end{lstlisting}
+
+\subsubsection{Integration dans le pipeline ETL}
+
+L'etape de backup est integree dans l'orchestrateur \texttt{run\_etl.py} comme etape 5 :
+
+\begin{lstlisting}[language=Python, caption={Integration du backup dans le pipeline ETL (run\_etl.py)}]
+# Etape 5 : Backup BACPAC vers Data Lake
+if args.full or args.backup:
+    from backup_to_datalake import step_backup_datalake
+    steps_run += 1
+    if step_backup_datalake(config):
+        steps_ok += 1
+    else:
+        success = False
+\end{lstlisting}
+
+Le backup peut etre lance de trois manieres :
+
+\begin{lstlisting}[language=bash, caption={Lancement du backup}]
+# Pipeline complet (etapes 1 a 5, backup inclus)
+python run_etl.py --full \
+    --storage-account dlelbrek --resource-group rg-projet-data
+
+# Backup seul (etape 5 uniquement)
+python run_etl.py --backup \
+    --storage-account dlelbrek --resource-group rg-projet-data
+
+# Script autonome avec options detaillees
+python backup_to_datalake.py \
+    --server sqlelbrek-prod --database projet_data_eng \
+    --user sqladmin --password *** \
+    --storage-account dlelbrek --resource-group rg-projet-data \
+    --container raw --retention-days 30
+\end{lstlisting}
+
+Le schema suivant illustre le flux complet du backup :
+
+\begin{lstlisting}[numbers=none]
+run_etl.py --backup
+  |
+  v
+backup_to_datalake.py
+  |
+  +-- az sql db export ---------> Azure SQL Database
+  |                                    |
+  |                                    v (export .bacpac)
+  |                               Storage Account ADLS Gen2
+  |                                    |
+  |                                    v
+  |                      raw/backups/projet_data_eng_20260217_143000.bacpac
+  |
+  +-- Log dans dwh.log_etl ----> analytics.v_historique_backups
+  |
+  +-- Nettoyage (.bacpac > 30j)
+\end{lstlisting}
+
+\subsection{Configuration Terraform pour la retention}
+
+La politique de retention des sauvegardes automatiques Azure est configuree dans l'infrastructure Terraform :
+
+\begin{lstlisting}[caption={Configuration Terraform des backups Azure SQL}]
+resource "azurerm_mssql_database" "dwh" {
+  # ... configuration existante ...
+
+  short_term_retention_policy {
+    retention_days           = 14
+    backup_interval_in_hours = 12
+  }
+
+  long_term_retention_policy {
+    weekly_retention  = "P4W"    # 4 semaines
+    monthly_retention = "P12M"   # 12 mois
+    yearly_retention  = "P3Y"    # 3 ans
+    week_of_year      = 1
+  }
+}
+\end{lstlisting}
+
+\subsection{Restauration}
+
+Deux methodes de restauration sont disponibles selon le type de backup :
+
+\begin{itemize}
+    \item \textbf{Restauration Point-in-Time (PITR)} depuis les backups automatiques Azure : permet de restaurer la base a n'importe quel instant dans la fenetre de retention (14 jours).
+    \item \textbf{Import BACPAC} depuis le Data Lake : permet de recreer la base a partir d'un fichier \texttt{.bacpac} exporte par le pipeline ETL.
+\end{itemize}
+
+\begin{lstlisting}[language=bash, caption={Restauration via Azure CLI}]
+# Methode 1 : Restauration Point-in-Time (PITR)
+az sql db restore \
+    --resource-group rg-projet-data \
+    --server sqlelbrek-prod \
+    --name projet_data_eng \
+    --dest-name projet_data_eng_restored \
+    --time "2026-02-16T10:00:00Z"
+
+# Methode 2 : Import d'un fichier BACPAC depuis le Data Lake
+az sql db import \
+    --resource-group rg-projet-data \
+    --server sqlelbrek-prod \
+    --name projet_data_eng_restored \
+    --storage-key <storage_key> \
+    --storage-key-type StorageAccessKey \
+    --storage-uri "https://dlelbrek.blob.core.windows.net/raw/\
+backups/projet_data_eng_20260217_143000.bacpac" \
+    --admin-user sqladmin --admin-password ***
+\end{lstlisting}
+
+\subsection{Vues de monitoring des backups}
+
+Deux vues SQL permettent de surveiller l'etat des sauvegardes :
+
+\begin{itemize}
+    \item \texttt{analytics.v\_etat\_backup\_azure} : Interroge la DMV \texttt{sys.dm\_database\_backups} pour afficher les backups automatiques Azure (type, date, taille).
+    \item \texttt{analytics.v\_historique\_backups} : Filtre la table \texttt{dwh.log\_etl} sur l'etape \texttt{BACKUP\_BACPAC} pour afficher l'historique des exports BACPAC effectues par le script Python.
+\end{itemize}
+
+\begin{lstlisting}[language=SQL, caption={Vue de l'historique des exports BACPAC}]
+CREATE VIEW analytics.v_historique_backups AS
+SELECT
+    log_id, date_execution,
+    etape AS type_backup, statut, message,
+    duree_secondes, nb_lignes, utilisateur
+FROM dwh.log_etl
+WHERE etape IN ('BACKUP_BACPAC', 'RESTAURATION');
+\end{lstlisting}
+
+\pointimportant{Un backup n'a de valeur que si la restauration fonctionne. Il est recommande de tester la restauration PITR et l'import BACPAC au moins une fois par trimestre sur un environnement de test, pour verifier l'integrite des sauvegardes et mesurer le temps reel de restauration (RTO effectif).}
+
+
+%=================================================================
+%     SECTION 5 : INTEGRATION DE NOUVELLES SOURCES
+%=================================================================
+\newpage
+\section{Integration de nouvelles sources de donnees}
+
+\subsection{Problematique}
+
+\definition{Integration de donnees}{%
+L'integration de donnees est le processus qui consiste a combiner des donnees provenant de sources heterogenes (formats differents, structures differentes, frequences de mise a jour differentes) dans un systeme unifie -- ici, l'entrepot de donnees. Ce processus implique l'extraction des donnees sources, leur transformation pour les conformer au schema cible, et leur chargement dans l'entrepot (processus ETL).
+}
+
+L'entrepot E5 chargeait 4 tables de faits sur les 7 prevues. Pour l'evolution E6, nous completons l'integration en ajoutant :
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{fait\_emploi} : Donnees d'emploi et chomage depuis la source \texttt{EMPLOI\_CHOMAGE\_hauts\_de\_france.csv}
+    \item \textbf{fait\_menages} : Donnees sur les menages depuis \texttt{Menage\_hauts\_de\_france.csv}
+\end{itemize}
+
+\subsection{Analyse des sources}
+
+\subsubsection{Source emploi et chomage}
+
+Le fichier \texttt{EMPLOI\_CHOMAGE\_hauts\_de\_france.csv} contient les colonnes suivantes :
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{Colonne source} & \textbf{Type} & \textbf{Description} \\
+\hline
+\texttt{GEO} & NVARCHAR & Code geographique (ex: \texttt{2024-DEP-02}) \\
+\hline
+\texttt{PCS} & NVARCHAR & Code PCS (\texttt{\_T} = total, \texttt{1}-\texttt{9} = categories) \\
+\hline
+\texttt{EMPSTA\_ENQ} & NVARCHAR & Statut d'emploi : \texttt{1} = en emploi, \texttt{2} = chomeur, \texttt{1T2} = actifs \\
+\hline
+\texttt{TIME\_PERIOD} & INT & Annee de reference \\
+\hline
+\texttt{OBS\_VALUE} & FLOAT & Valeur mesuree (nombre de personnes) \\
+\hline
+\texttt{DEPARTEMENT} & NVARCHAR & Code departement (02, 59, 60, 62, 80) \\
+\hline
+\end{tabularx}
+\caption{Structure du fichier source emploi et chomage}
+\end{table}
+
+\subsubsection{Source menages}
+
+Le fichier \texttt{Menage\_hauts\_de\_france.csv} contient les colonnes suivantes :
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{Colonne source} & \textbf{Type} & \textbf{Description} \\
+\hline
+\texttt{GEO} & NVARCHAR & Code geographique \\
+\hline
+\texttt{TIME\_PERIOD} & INT & Annee de reference \\
+\hline
+\texttt{RP\_MEASURE} & NVARCHAR & Type de mesure : \texttt{DWELLINGS} = nb menages, \texttt{DWELLINGS\_POPSIZE} = population \\
+\hline
+\texttt{TPH} & NVARCHAR & Type de menage (ex: \texttt{MF222} = couple avec 2+ enfants) \\
+\hline
+\texttt{OBS\_VALUE} & FLOAT & Valeur mesuree \\
+\hline
+\texttt{DEPARTEMENT} & NVARCHAR & Code departement \\
+\hline
+\end{tabularx}
+\caption{Structure du fichier source menages}
+\end{table}
+
+\subsection{Mapping source vers dimensions}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|l|l|l|X|}
+\hline
+\textbf{Table de faits} & \textbf{Colonne source} & \textbf{Dimension cible} & \textbf{Cle de jointure} \\
+\hline
+\multirow{2}{*}{fait\_emploi} & TIME\_PERIOD & dwh.dim\_temps & annee \\
+\cline{2-4}
+& DEPARTEMENT & dwh.dim\_geographie & departement\_code (est\_actif = 1) \\
+\hline
+\multirow{2}{*}{fait\_menages} & TIME\_PERIOD & dwh.dim\_temps & annee \\
+\cline{2-4}
+& DEPARTEMENT & dwh.dim\_geographie & departement\_code (est\_actif = 1) \\
+\hline
+\end{tabularx}
+\caption{Mapping des colonnes sources vers les dimensions}
+\end{table}
+
+\subsection{Code ETL des nouvelles sources}
+
+\begin{lstlisting}[language=Python, caption={Chargement de fait\_emploi (extrait de load\_facts.py)}]
+def load_fait_emploi(engine) -> int:
+    """E6 - Charge la table de faits emploi et chomage."""
+    logger.info("Chargement de fait_emploi...")
+
+    with engine.connect() as conn:
+        df_stg = pd.read_sql("SELECT * FROM dbo.stg_emploi_chomage", conn)
+
+    if df_stg.empty:
+        logger.warning("Pas de donnees dans stg_emploi_chomage")
+        return 0
+
+    # Mappings de dimensions
+    temps_map = get_dim_mapping(engine, 'dim_temps', 'temps_id', ['annee'])
+    geo_map = get_dim_mapping(engine, 'dim_geographie', 'geo_id',
+                               ['departement_code'])
+
+    # Agreger par annee / departement
+    # EMPSTA_ENQ: 1=emploi, 2=chomage, 1T2=actifs
+    records = []
+    for (annee, dept), group in df_stg.groupby(['annee', 'dept_code']):
+        temps_id = temps_map.get(int(annee))
+        geo_id = geo_map.get(str(dept))
+        if not temps_id or not geo_id:
+            continue
+
+        pop_active = group[group['EMPSTA_ENQ'] == '1T2']['OBS_VALUE'].sum()
+        pop_emploi = group[group['EMPSTA_ENQ'] == '1']['OBS_VALUE'].sum()
+        pop_chomeurs = group[group['EMPSTA_ENQ'] == '2']['OBS_VALUE'].sum()
+        taux_chomage = (pop_chomeurs / pop_active * 100
+                        if pop_active > 0 else None)
+
+        records.append({
+            'temps_id': int(temps_id), 'geo_id': int(geo_id),
+            'population_active': pop_active,
+            'population_en_emploi': pop_emploi,
+            'population_chomeurs': pop_chomeurs,
+            'taux_chomage': taux_chomage,
+            'source_fichier': 'stg_emploi_chomage'
+        })
+
+    df_fact = pd.DataFrame(records)
+    df_fact.to_sql('fait_emploi', engine, schema='dwh',
+                    if_exists='append', index=False)
+
+    log_etl_db(engine, 'load_facts', 'dwh.fait_emploi', 'SUCCES',
+               nb_lignes=len(df_fact))
+    return len(df_fact)
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption={Chargement de fait\_menages (extrait de load\_facts.py)}]
+def load_fait_menages(engine) -> int:
+    """E6 - Charge la table de faits menages."""
+    logger.info("Chargement de fait_menages...")
+
+    with engine.connect() as conn:
+        df_stg = pd.read_sql("SELECT * FROM dbo.stg_menages", conn)
+
+    if df_stg.empty:
+        logger.warning("Pas de donnees dans stg_menages")
+        return 0
+
+    temps_map = get_dim_mapping(engine, 'dim_temps', 'temps_id', ['annee'])
+    geo_map = get_dim_mapping(engine, 'dim_geographie', 'geo_id',
+                               ['departement_code'])
+
+    # RP_MEASURE: DWELLINGS = nb menages, DWELLINGS_POPSIZE = population
+    records = []
+    for (annee, dept), group in df_stg.groupby(['annee', 'dept_code']):
+        temps_id = temps_map.get(int(annee))
+        geo_id = geo_map.get(str(dept))
+        if not temps_id or not geo_id:
+            continue
+
+        nb_menages = group[
+            group['RP_MEASURE'] == 'DWELLINGS']['OBS_VALUE'].sum()
+        nb_personnes = group[
+            group['RP_MEASURE'] == 'DWELLINGS_POPSIZE']['OBS_VALUE'].sum()
+        taille_moyenne = (nb_personnes / nb_menages
+                          if nb_menages > 0 else None)
+
+        records.append({
+            'temps_id': int(temps_id), 'geo_id': int(geo_id),
+            'nb_menages': nb_menages,
+            'nb_personnes': nb_personnes,
+            'taille_moyenne_menage': taille_moyenne,
+            'source_fichier': 'stg_menages'
+        })
+
+    df_fact = pd.DataFrame(records)
+    df_fact.to_sql('fait_menages', engine, schema='dwh',
+                    if_exists='append', index=False)
+
+    log_etl_db(engine, 'load_facts', 'dwh.fait_menages', 'SUCCES',
+               nb_lignes=len(df_fact))
+    return len(df_fact)
+\end{lstlisting}
+
+\pointimportant{Les deux fonctions suivent le meme pattern : lecture depuis staging, mapping vers les dimensions via \texttt{get\_dim\_mapping()}, agregation par annee/departement, puis insertion dans la table de faits. La journalisation en base (\texttt{log\_etl\_db}) est appelee a la fin pour tracer le chargement.}
+
+
+%=================================================================
+%     SECTION 6 : GESTION DES ACCES (RBAC)
+%=================================================================
+\newpage
+\section{Gestion des acces et securite}
+
+\definition{RBAC (Role-Based Access Control)}{%
+Le RBAC est un modele de controle d'acces qui attribue des permissions non pas directement aux utilisateurs, mais a des \textbf{roles}. Chaque utilisateur se voit attribuer un ou plusieurs roles, et herite des permissions associees a ces roles. Cette approche simplifie la gestion des acces : au lieu de configurer les permissions pour chaque utilisateur individuellement, on gere un nombre limite de roles.
+
+\medskip
+
+\textbf{Avantage RGPD} : Le RBAC facilite le respect du principe de \textit{minimisation des acces} (un utilisateur n'accede qu'aux donnees strictement necessaires a sa fonction), qui est un des principes fondamentaux du RGPD.
+}
+
+\subsection{Roles definis dans l'entrepot}
+
+L'entrepot dispose de 4 roles avec des niveaux d'acces differents :
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|l|X|l|}
+\hline
+\textbf{Role} & \textbf{Permissions} & \textbf{Utilisateurs types} \\
+\hline
+\texttt{role\_etl\_process} & Lecture/ecriture sur \texttt{stg} et \texttt{dwh}, lecture sur \texttt{dm} et \texttt{analytics} & Comptes de service ETL \\
+\hline
+\texttt{role\_analyst} & Lecture sur \texttt{dwh} (dimensions uniquement), lecture complete sur \texttt{dm} et \texttt{analytics} & Data Analysts \\
+\hline
+\texttt{role\_bi\_reader} & Lecture seule sur \texttt{dm} et \texttt{analytics}, lecture des dimensions cles & Power BI, Tableau \\
+\hline
+\texttt{role\_dwh\_admin} & Controle total sur tous les schemas et objets & Administrateurs DBA \\
+\hline
+\end{tabularx}
+\caption{Roles RBAC de l'entrepot de donnees}
+\end{table}
+
+\subsection{Procedure de creation d'acces}
+
+\begin{lstlisting}[language=SQL, caption={Procedure de creation d'un nouvel acces utilisateur}]
+CREATE PROCEDURE dwh.sp_creer_acces
+    @login NVARCHAR(100),
+    @role  NVARCHAR(50)
+AS
+BEGIN
+    -- Creer le login sur le serveur
+    DECLARE @sql NVARCHAR(MAX)
+    SET @sql = 'CREATE USER [' + @login + '] FROM EXTERNAL PROVIDER'
+    EXEC sp_executesql @sql
+
+    -- Attribuer le role
+    SET @sql = 'ALTER ROLE [' + @role + '] ADD MEMBER [' + @login + ']'
+    EXEC sp_executesql @sql
+
+    -- Journaliser la creation
+    INSERT INTO dwh.log_etl (etape, table_cible, statut, message)
+    VALUES ('ACCES', @login, 'SUCCES',
+            'Utilisateur cree avec le role : ' + @role)
+END;
+\end{lstlisting}
+
+
+%=================================================================
+%  SECTION 7 : PROCEDURES D'EVOLUTION ET DE SCALABILITE
+%=================================================================
+\newpage
+\section{Procedures d'evolution et de scalabilite}
+
+\subsection{Qu'est-ce que la scalabilite ?}
+
+\definition{Scalabilite (Scalability)}{%
+La scalabilite est la capacite d'un systeme a s'adapter a une augmentation de charge (volume de donnees, nombre d'utilisateurs, frequence des requetes) sans degradation significative des performances. On distingue :
+\begin{itemize}
+    \item \textbf{Scale-up (vertical)} : Augmenter les ressources d'une seule machine (plus de CPU, RAM, stockage). Sur Azure SQL, cela revient a changer le tier de service (ex: S0 $\rightarrow$ S3 $\rightarrow$ P1).
+    \item \textbf{Scale-out (horizontal)} : Ajouter des machines supplementaires pour repartir la charge. Sur Azure, cela peut impliquer des repliques en lecture seule ou du sharding.
+\end{itemize}
+}
+
+\subsection{Procedure 1 : Creer un nouvel acces utilisateur}
+
+\begin{enumerate}[leftmargin=*]
+    \item Recevoir la demande via le systeme de ticketing (type : \texttt{changement}, priorite : P4)
+    \item Identifier le role approprie selon le profil de l'utilisateur (cf. tableau des roles)
+    \item Executer la procedure stockee \texttt{dwh.sp\_creer\_acces}
+    \item Verifier les permissions effectives avec un test de connexion
+    \item Documenter dans le ticket : login cree, role attribue, date
+    \item Notifier l'utilisateur de ses identifiants (via canal securise)
+\end{enumerate}
+
+\subsection{Procedure 2 : Ajouter un nouveau datamart}
+
+\begin{enumerate}[leftmargin=*]
+    \item Recevoir le besoin d'analyse (ticket type : \texttt{changement})
+    \item Identifier les tables de faits et dimensions impliquees
+    \item Creer la vue materialisee dans le schema \texttt{dm} :
+    \begin{lstlisting}[language=SQL]
+CREATE VIEW dm.vm_nouveau_datamart AS
+SELECT ... FROM dwh.fait_xxx f
+JOIN dwh.dim_xxx d ON f.xxx_id = d.xxx_id
+GROUP BY ...;
+    \end{lstlisting}
+    \item Attribuer les permissions au role \texttt{role\_analyst} et \texttt{role\_bi\_reader}
+    \item Mettre a jour la documentation et le modele logique
+    \item Tester avec les analystes et valider les resultats
+\end{enumerate}
+
+\subsection{Procedure 3 : Augmenter l'espace de stockage}
+
+\explicationtechnique{Scale-up Azure SQL via Terraform}{%
+L'augmentation de capacite se fait en modifiant la variable \texttt{sql\_database\_sku} dans Terraform (voir code ci-dessous). Ensuite, un simple \texttt{terraform apply} effectue le changement sans interruption de service (Azure gere le basculement transparent).
+}
+
+\begin{lstlisting}[numbers=none]
+# variables.tf - Changer le SKU
+variable "sql_database_sku" {
+  default = "S0"  # Actuel: 10 DTU, 250 Go
+  # S1 = 20 DTU, 250 Go
+  # S2 = 50 DTU, 250 Go
+  # S3 = 100 DTU, 250 Go (scale-up performance)
+  # P1 = 125 DTU, 500 Go (scale-up stockage + perf)
+}
+\end{lstlisting}
+
+\subsection{Procedure 4 : Ajouter une nouvelle source de donnees}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Analyse} : Etudier le format, le volume, la frequence de la nouvelle source
+    \item \textbf{Staging} : Creer la table de staging \texttt{stg.stg\_nouvelle\_source}
+    \item \textbf{Mapping} : Identifier les correspondances avec les dimensions existantes (ou creer de nouvelles dimensions si necessaire)
+    \item \textbf{Schema} : Creer ou modifier la table de faits dans le schema \texttt{dwh}
+    \item \textbf{ETL} : Developper la fonction de chargement dans \texttt{load\_facts.py}
+    \item \textbf{Datamart} : Mettre a jour ou creer les vues dans le schema \texttt{dm}
+    \item \textbf{Tests} : Ajouter les tests de validation dans \texttt{test\_dwh.py}
+    \item \textbf{Deploiement} : Ajouter le script SQL dans le pipeline de deploiement
+    \item \textbf{Documentation} : Mettre a jour le modele logique et le dictionnaire de donnees
+\end{enumerate}
+
+
+%=================================================================
+%   SECTION 8 : VARIATIONS DE DIMENSIONS (SCD) -- C17
+%=================================================================
+\newpage
+\section{Variations de dimensions (Slowly Changing Dimensions)}
+
+\subsection{Problematique des changements dimensionnels}
+
+\definition{Slowly Changing Dimension (SCD)}{%
+Une \textbf{Slowly Changing Dimension} (dimension a evolution lente) est une dimension dont les attributs changent au fil du temps, mais de maniere peu frequente. Le terme a ete formalise par \textbf{Ralph Kimball}, l'un des fondateurs de la modelisation dimensionnelle.
+
+\medskip
+
+\textbf{Pourquoi est-ce un probleme ?}
+
+Dans un entrepot de donnees classique, une dimension contient des valeurs de reference (ex: le nom d'un departement, une categorie socioprofessionnelle). Quand ces valeurs changent dans le monde reel, la question se pose : faut-il simplement ecraser l'ancienne valeur ? Ou faut-il conserver l'historique pour pouvoir analyser les donnees ``telles qu'elles etaient'' a un instant donne ?
+
+\medskip
+
+\textbf{Exemples concrets dans notre entrepot :}
+\begin{itemize}
+    \item Une commune change de nom (ex: fusion de communes dans les Hauts-de-France)
+    \item Le code NAF d'un secteur d'activite est mis a jour par l'INSEE
+    \item Les tranches d'age de la nomenclature PCS sont redefinies
+    \item Un indicateur FILOSOFI change de code ou de methode de calcul
+\end{itemize}
+
+\medskip
+
+Ralph Kimball a defini plusieurs types de reponses a ce probleme, les plus courants etant les \textbf{Types 1, 2 et 3}.
+}
+
+\subsection{SCD Type 1 : Ecrasement (Overwrite)}
+
+\definition{SCD Type 1}{%
+Le Type 1 consiste a \textbf{ecraser purement et simplement l'ancienne valeur} par la nouvelle. L'historique est perdu. Cette approche est utilisee quand :
+\begin{itemize}
+    \item Le changement est une \textbf{correction d'erreur} (faute d'orthographe, code incorrect)
+    \item L'historique de l'ancienne valeur n'a \textbf{aucun interet analytique}
+    \item On souhaite garder la dimension \textbf{simple et compacte}
+\end{itemize}
+
+\textbf{Avantages :} Simple a implementer, pas de duplication de lignes, pas de colonnes supplementaires.
+
+\textbf{Inconvenients :} Perte totale de l'historique. Les analyses passees utilisant l'ancienne valeur ne sont plus reproductibles.
+}
+
+\textbf{Exemple :} Le libelle de la section NAF ``C'' est corrige de ``Industrie manufacturere'' (faute) a ``Industrie manufacturiere''.
+
+\begin{lstlisting}[language=SQL, caption={Implementation SCD Type 1 -- Ecrasement}]
+CREATE PROCEDURE dwh.sp_scd_type1_activite
+    @code_naf        NVARCHAR(10),
+    @nouveau_libelle NVARCHAR(200)
+AS
+BEGIN
+    -- Journaliser l'ancienne valeur (pour audit)
+    INSERT INTO dwh.log_etl (etape, table_cible, statut, message)
+    SELECT 'SCD_TYPE1', 'dim_activite', 'INFO',
+        'Ancien libelle: ' + libelle_section
+    FROM dwh.dim_activite
+    WHERE code_section_naf = @code_naf;
+
+    -- Ecrasement de la valeur
+    UPDATE dwh.dim_activite
+    SET libelle_section = @nouveau_libelle,
+        date_modification = GETDATE()
+    WHERE code_section_naf = @code_naf;
+END;
+\end{lstlisting}
+
+\subsection{SCD Type 2 : Historisation (Add New Row)}
+
+\definition{SCD Type 2}{%
+Le Type 2 est l'approche la plus riche : au lieu d'ecraser l'ancienne valeur, on \textbf{cree une nouvelle ligne} pour la nouvelle valeur et on \textbf{ferme l'ancienne ligne} en marquant sa date de fin. Chaque version de la dimension coexiste dans la table avec des colonnes de gestion :
+\begin{itemize}
+    \item \texttt{date\_debut\_validite} : Date a partir de laquelle cette version est valide
+    \item \texttt{date\_fin\_validite} : Date de fin de validite (NULL = version courante)
+    \item \texttt{est\_actif} : Booleen indiquant si c'est la version en vigueur
+    \item \texttt{version} : Numero de version incremental
+\end{itemize}
+
+\textbf{Avantages :} Conservation complete de l'historique. Les analyses passees restent fideles au contexte de l'epoque. Conformite avec les exigences d'audit et de tracabilite.
+
+\textbf{Inconvenients :} La table grossit avec le temps (une ligne par version). Les requetes doivent filtrer sur \texttt{est\_actif = 1} pour obtenir les valeurs courantes. Les ETL sont plus complexes.
+}
+
+\textbf{Exemple :} La commune ``Noyelles-Godault'' (code 62617) fusionne avec ``Henin-Beaumont'' en 2026. On conserve l'historique des deux noms.
+
+\begin{lstlisting}[language=SQL, caption={Colonnes SCD Type 2 ajoutees a dim\_geographie}]
+-- Ajout des colonnes SCD Type 2 a dim_geographie
+ALTER TABLE dwh.dim_geographie ADD
+    date_debut_validite DATETIME DEFAULT '2010-01-01',
+    date_fin_validite   DATETIME NULL,  -- NULL = actif
+    est_actif           BIT DEFAULT 1,
+    version             INT DEFAULT 1;
+\end{lstlisting}
+
+\begin{lstlisting}[language=SQL, caption={Procedure SCD Type 2 -- Historisation}]
+CREATE PROCEDURE dwh.sp_scd_type2_geographie
+    @code_commune     NVARCHAR(10),
+    @nouveau_nom      NVARCHAR(200),
+    @nouveau_code     NVARCHAR(10) = NULL
+AS
+BEGIN
+    DECLARE @ancienne_version INT
+    DECLARE @ancien_id INT
+
+    -- Recuperer la version courante
+    SELECT @ancienne_version = version, @ancien_id = geo_id
+    FROM dwh.dim_geographie
+    WHERE code_commune = @code_commune AND est_actif = 1;
+
+    -- Fermer l'ancien enregistrement
+    UPDATE dwh.dim_geographie
+    SET date_fin_validite = GETDATE(),
+        est_actif = 0,
+        date_modification = GETDATE()
+    WHERE geo_id = @ancien_id;
+
+    -- Inserer la nouvelle version
+    INSERT INTO dwh.dim_geographie (
+        code_departement, nom_departement, code_region,
+        nom_region, niveau, code_commune, nom_commune,
+        latitude, longitude,
+        date_debut_validite, date_fin_validite,
+        est_actif, version,
+        date_creation, date_modification
+    )
+    SELECT
+        code_departement, nom_departement, code_region,
+        nom_region, niveau,
+        ISNULL(@nouveau_code, code_commune),
+        @nouveau_nom,
+        latitude, longitude,
+        GETDATE(), NULL,
+        1, @ancienne_version + 1,
+        GETDATE(), GETDATE()
+    FROM dwh.dim_geographie
+    WHERE geo_id = @ancien_id;
+
+    -- Journaliser le changement
+    INSERT INTO dwh.log_etl (etape, table_cible, statut, message)
+    VALUES ('SCD_TYPE2', 'dim_geographie', 'SUCCES',
+        'Nouvelle version (v' + CAST(@ancienne_version + 1 AS VARCHAR)
+        + ') pour commune ' + @code_commune
+        + ' -> ' + @nouveau_nom);
+END;
+\end{lstlisting}
+
+\subsection{SCD Type 3 : Colonne precedente (Add New Column)}
+
+\definition{SCD Type 3}{%
+Le Type 3 est un compromis entre le Type 1 et le Type 2 : on ajoute une \textbf{colonne supplementaire} pour stocker l'ancienne valeur, tout en mettant a jour la valeur courante. Cette approche ne conserve qu'\textbf{un seul niveau d'historique} (la valeur precedente).
+
+\begin{itemize}
+    \item \texttt{libelle\_actuel} : La valeur courante de l'attribut
+    \item \texttt{libelle\_precedent} : L'ancienne valeur (avant le dernier changement)
+    \item \texttt{date\_changement} : La date du dernier changement
+\end{itemize}
+
+\textbf{Avantages :} Pas de duplication de lignes (la table garde la meme taille). Simple a requeter. Permet de comparer ``avant/apres'' en une seule requete.
+
+\textbf{Inconvenients :} Ne conserve qu'un seul niveau d'historique. Si l'attribut change une troisieme fois, la premiere valeur est perdue.
+}
+
+\textbf{Exemple :} La categorie PCS ``Cadres'' est renommee en ``Cadres et professions intellectuelles superieures''.
+
+\begin{lstlisting}[language=SQL, caption={Colonnes SCD Type 3 ajoutees a dim\_demographie}]
+-- Ajout des colonnes SCD Type 3 a dim_demographie
+ALTER TABLE dwh.dim_demographie ADD
+    ancien_libelle_pcs  NVARCHAR(200) NULL,
+    date_changement_pcs DATETIME NULL;
+\end{lstlisting}
+
+\begin{lstlisting}[language=SQL, caption={Procedure SCD Type 3}]
+CREATE PROCEDURE dwh.sp_scd_type3_demographie
+    @code_pcs        NVARCHAR(10),
+    @nouveau_libelle NVARCHAR(200)
+AS
+BEGIN
+    -- Sauvegarder l'ancien libelle et mettre a jour
+    UPDATE dwh.dim_demographie
+    SET ancien_libelle_pcs = libelle_pcs,
+        libelle_pcs = @nouveau_libelle,
+        date_changement_pcs = GETDATE(),
+        date_modification = GETDATE()
+    WHERE code_pcs = @code_pcs
+      AND libelle_pcs <> @nouveau_libelle;
+
+    INSERT INTO dwh.log_etl (etape, table_cible, statut, message)
+    VALUES ('SCD_TYPE3', 'dim_demographie', 'SUCCES',
+        'PCS ' + @code_pcs + ' mis a jour avec Type 3');
+END;
+\end{lstlisting}
+
+\subsection{Synthese comparative des types SCD}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Critere} & \textbf{Type 1} & \textbf{Type 2} & \textbf{Type 3} \\
+\hline
+Historique conserve & Non & Oui (complet) & Partiel (1 niveau) \\
+\hline
+Nouvelles lignes & Non & Oui & Non \\
+\hline
+Nouvelles colonnes & Non & Oui (4 col.) & Oui (2 col.) \\
+\hline
+Complexite ETL & Faible & Elevee & Moyenne \\
+\hline
+Cas d'usage & Corrections & Historisation & Comparaison \\
+\hline
+Dimension & \texttt{dim\_activite} & \texttt{dim\_geographie} & \texttt{dim\_demographie} \\
+\hline
+\end{tabular}
+\caption{Comparaison des types SCD implementes}
+\end{table}
+
+
+%=================================================================
+%   SECTION 9 : INTEGRATION DES VARIATIONS AUX ETL
+%=================================================================
+\newpage
+\section{Integration des variations aux ETL}
+
+\subsection{Adaptation du pipeline ETL}
+
+\definition{MERGE / UPSERT}{%
+Le \textbf{MERGE} (aussi appele UPSERT = UPDATE + INSERT) est une operation SQL qui combine insertion et mise a jour en une seule instruction. Pour chaque ligne source :
+\begin{itemize}
+    \item Si la ligne \textbf{existe deja} dans la cible (MATCHED) : on la met a jour (UPDATE)
+    \item Si la ligne \textbf{n'existe pas} dans la cible (NOT MATCHED) : on l'insere (INSERT)
+\end{itemize}
+C'est l'operation fondamentale pour gerer les SCD dans les ETL : au lieu d'un simple INSERT, chaque chargement verifie si les donnees ont change et applique le type SCD approprie.
+}
+
+Les ETL sont modifies pour integrer la logique SCD :
+
+\begin{lstlisting}[language=Python, caption={Fonction SCD Type 1 dans load\_dimensions.py}]
+def apply_scd_type1(engine, table, business_key,
+                    update_column, df_new):
+    """SCD Type 1 : Ecrase la valeur, trace l'ancienne dans les logs."""
+    with engine.connect() as conn:
+        df_current = pd.read_sql(f"SELECT * FROM {table}", conn)
+
+    merged = df_new.merge(df_current[[business_key, update_column]],
+                          on=business_key, suffixes=('_new', '_old'))
+    nb_changes = 0
+    for _, row in merged.iterrows():
+        new_val = row.get(f'{update_column}_new')
+        old_val = row.get(f'{update_column}_old')
+        if str(new_val) != str(old_val):
+            with engine.connect() as conn:
+                conn.execute(text(f"""
+                    UPDATE {table}
+                    SET {update_column} = :new_val,
+                        date_modification = GETDATE()
+                    WHERE {business_key} = :bk
+                """), {'new_val': str(new_val),
+                       'bk': row[business_key]})
+                conn.commit()
+            nb_changes += 1
+    return nb_changes
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption={Fonction SCD Type 2 complete dans load\_dimensions.py}]
+def apply_scd_type2(engine, table, business_key,
+                    tracked_columns, df_new):
+    """
+    SCD Type 2 : Historisation complete.
+    Ferme l'ancien enregistrement (est_actif=0, date_fin)
+    et insere une nouvelle version (est_actif=1, version+1).
+    """
+    # 1. Charger les enregistrements actifs actuels
+    with engine.connect() as conn:
+        df_current = pd.read_sql(
+            f"SELECT * FROM {table} WHERE est_actif = 1", conn
+        )
+
+    if df_current.empty:
+        return 0
+
+    # 2. Detecter les changements sur les colonnes suivies
+    merged = df_new.merge(df_current, on=business_key,
+                           suffixes=('_new', '_old'))
+    nb_changes = 0
+
+    for _, row in merged.iterrows():
+        changed = any(
+            str(row.get(f'{col}_new')) != str(row.get(f'{col}_old'))
+            for col in tracked_columns
+            if pd.notna(row.get(f'{col}_new'))
+            and pd.notna(row.get(f'{col}_old'))
+        )
+
+        if changed:
+            bk_value = row[business_key]
+            old_version = row.get('version_old', 1)
+
+            with engine.connect() as conn:
+                # 3a. Fermer l'ancien enregistrement
+                conn.execute(text(f"""
+                    UPDATE {table}
+                    SET date_fin_validite = GETDATE(),
+                        est_actif = 0,
+                        date_modification = GETDATE()
+                    WHERE {business_key} = :bk AND est_actif = 1
+                """), {'bk': bk_value})
+
+                # 3b. Copier et creer la nouvelle version
+                old_record = pd.read_sql(text(f"""
+                    SELECT * FROM {table}
+                    WHERE {business_key} = :bk AND est_actif = 0
+                    ORDER BY version DESC
+                """), conn, params={'bk': bk_value}).iloc[0]
+
+                new_record = old_record.to_dict()
+                for col in tracked_columns:
+                    new_val = row.get(f'{col}_new')
+                    if pd.notna(new_val):
+                        new_record[col] = new_val
+
+                new_record['date_debut_validite'] = datetime.now()
+                new_record['date_fin_validite'] = None
+                new_record['est_actif'] = 1
+                new_record['version'] = int(old_version) + 1
+                conn.commit()
+
+            nb_changes += 1
+            logger.info(f"SCD Type 2 - v{int(old_version)+1} "
+                         f"pour {business_key}={bk_value}")
+
+    log_etl_db(engine, 'SCD_TYPE2', table, 'SUCCES',
+               nb_changes, message=f'{nb_changes} versions creees')
+    return nb_changes
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python, caption={Fonction SCD Type 3 dans load\_dimensions.py}]
+def apply_scd_type3(engine, table, business_key,
+                    current_column, previous_column,
+                    date_column, df_new):
+    """SCD Type 3 : Sauvegarde l'ancienne valeur dans une colonne dediee."""
+    with engine.connect() as conn:
+        df_current = pd.read_sql(f"SELECT * FROM {table}", conn)
+
+    merged = df_new.merge(df_current[[business_key, current_column]],
+                          on=business_key, suffixes=('_new', '_old'))
+    nb_changes = 0
+    for _, row in merged.iterrows():
+        new_val = row.get(f'{current_column}_new')
+        old_val = row.get(f'{current_column}_old')
+        if str(new_val) != str(old_val):
+            with engine.connect() as conn:
+                conn.execute(text(f"""
+                    UPDATE {table}
+                    SET {previous_column} = {current_column},
+                        {current_column} = :new_val,
+                        {date_column} = GETDATE(),
+                        date_modification = GETDATE()
+                    WHERE {business_key} = :bk
+                """), {'new_val': str(new_val),
+                       'bk': row[business_key]})
+                conn.commit()
+            nb_changes += 1
+    return nb_changes
+\end{lstlisting}
+
+\explicationtechnique{Journalisation integree dans les ETL}{%
+Chaque fonction SCD appelle \texttt{log\_etl\_db()} pour enregistrer les operations dans la table \texttt{dwh.log\_etl}. Cela permet de suivre l'historique des changements dimensionnels depuis un outil BI via la vue \texttt{analytics.v\_resume\_scd}. Le module Python \texttt{logging} ecrit egalement dans le fichier \texttt{etl\_pipeline.log} pour le diagnostic local.
+}
+
+\subsection{Nouveau flux ETL avec SCD}
+
+Le pipeline ETL est enrichi d'une etape supplementaire :
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{STAGING} : Chargement des sources brutes (inchange)
+    \item \textbf{DIMENSIONS} : Chargement des dimensions \textit{avec detection de changements SCD}
+    \item \textbf{FAITS} : Chargement des mesures (inchange, utilise les cles des versions actives)
+    \item \textbf{REFRESH} : Mise a jour des statistiques et des datamarts
+\end{enumerate}
+
+\pointimportant{Lors du chargement des faits, les jointures avec les dimensions doivent utiliser le filtre \texttt{est\_actif = 1} pour pointer vers la version courante de chaque dimension. Pour les analyses historiques, on peut joindre sur les dates de validite pour retrouver la version de la dimension qui etait en vigueur a la date du fait.}
+
+
+%=================================================================
+%   SECTION 10 : DOCUMENTATION ET MODELES MIS A JOUR
+%=================================================================
+\newpage
+\section{Documentation des variations et modeles mis a jour}
+
+\subsection{Modele logique avant evolution (E5)}
+
+Le schema en etoile initial ne contenait aucune gestion de l'historique dans les dimensions :
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    dimension/.style={rectangle, draw=azure, fill=blue!5, text width=3cm, align=center, minimum height=1cm, font=\small},
+    fait/.style={rectangle, draw=darkblue, fill=blue!15, text width=3.5cm, align=center, minimum height=1.2cm, font=\small\bfseries},
+    arrow/.style={->, thick, darkblue}
+]
+    % Fait central
+    \node[fait] (fait) {fait\_population\\fait\_revenus\\fait\_entreprises\\...};
+
+    % Dimensions
+    \node[dimension, above left=1.5cm and 2cm of fait] (temps) {dim\_temps\\(annee)};
+    \node[dimension, above right=1.5cm and 2cm of fait] (geo) {dim\_geographie\\(dept, commune)};
+    \node[dimension, below left=1.5cm and 2cm of fait] (demo) {dim\_demographie\\(sexe, age, pcs)};
+    \node[dimension, below right=1.5cm and 2cm of fait] (act) {dim\_activite\\(naf, forme\_juridique)};
+
+    % Fleches
+    \draw[arrow] (temps) -- (fait);
+    \draw[arrow] (geo) -- (fait);
+    \draw[arrow] (demo) -- (fait);
+    \draw[arrow] (act) -- (fait);
+\end{tikzpicture}
+\caption{Modele en etoile E5 -- Sans gestion SCD}
+\end{figure}
+
+\subsection{Modele logique apres evolution (E6)}
+
+Apres l'evolution E6, les dimensions integrent les colonnes SCD :
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    dimension/.style={rectangle, draw=azure, fill=blue!5, text width=4.5cm, align=center, minimum height=1.5cm, font=\small},
+    fait/.style={rectangle, draw=darkblue, fill=blue!15, text width=3.5cm, align=center, minimum height=1.2cm, font=\small\bfseries},
+    scd/.style={rectangle, draw=successgreen, fill=green!5, text width=4.5cm, align=center, minimum height=0.6cm, font=\footnotesize\itshape},
+    arrow/.style={->, thick, darkblue}
+]
+    % Fait central
+    \node[fait] (fait) {Tables de faits\\(7 tables)};
+
+    % Dimensions avec SCD
+    \node[dimension, above left=2cm and 2.5cm of fait] (geo) {dim\_geographie\\(dept, commune)};
+    \node[scd, below=0.1cm of geo] (geo_scd) {\textcolor{successgreen}{+ SCD Type 2 : date\_debut,} \textcolor{successgreen}{date\_fin, est\_actif, version}};
+
+    \node[dimension, above right=2cm and 2.5cm of fait] (demo) {dim\_demographie\\(sexe, age, pcs)};
+    \node[scd, below=0.1cm of demo] (demo_scd) {\textcolor{successgreen}{+ SCD Type 3 : ancien\_libelle,} \textcolor{successgreen}{date\_changement}};
+
+    \node[dimension, below left=2cm and 2.5cm of fait] (act) {dim\_activite\\(naf, forme\_juridique)};
+    \node[scd, below=0.1cm of act] (act_scd) {\textcolor{successgreen}{+ SCD Type 1 : ecrasement} \textcolor{successgreen}{(log dans dwh.log\_etl)}};
+
+    \node[dimension, below right=2cm and 2.5cm of fait] (temps) {dim\_temps\\(annee)};
+
+    % Fleches
+    \draw[arrow] (geo) -- (fait);
+    \draw[arrow] (demo) -- (fait);
+    \draw[arrow] (act) -- (fait);
+    \draw[arrow] (temps) -- (fait);
+\end{tikzpicture}
+\caption{Modele en etoile E6 -- Avec gestion SCD Type 1, 2 et 3}
+\end{figure}
+
+\subsection{Dictionnaire des colonnes SCD ajoutees}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|l|l|l|X|}
+\hline
+\textbf{Dimension} & \textbf{Colonne} & \textbf{Type SQL} & \textbf{Description} \\
+\hline
+\multirow{4}{*}{dim\_geographie} & date\_debut\_validite & DATETIME & Date de debut de validite de cette version \\
+\cline{2-4}
+& date\_fin\_validite & DATETIME NULL & Date de fin (NULL = version active) \\
+\cline{2-4}
+& est\_actif & BIT & 1 = version courante, 0 = version historique \\
+\cline{2-4}
+& version & INT & Numero de version incremental \\
+\hline
+\multirow{2}{*}{dim\_demographie} & ancien\_libelle\_pcs & NVARCHAR(200) & Ancien libelle PCS avant le dernier changement \\
+\cline{2-4}
+& date\_changement\_pcs & DATETIME & Date du dernier changement \\
+\hline
+dim\_activite & \multicolumn{3}{l|}{Pas de colonnes ajoutees (Type 1 = ecrasement, trace dans les logs)} \\
+\hline
+\end{tabularx}
+\caption{Dictionnaire des colonnes SCD ajoutees aux dimensions}
+\end{table}
+
+
+%=================================================================
+%   SECTION 11 : TESTS AUTOMATISES E6
+%=================================================================
+\newpage
+\section{Tests automatises}
+
+\subsection{Architecture des tests}
+
+\definition{Tests automatises}{%
+Les tests automatises sont des scripts qui verifient automatiquement le bon fonctionnement du systeme sans intervention humaine. Ils permettent de detecter les regressions (quand une modification casse une fonctionnalite existante) et de valider que les nouvelles fonctionnalites fonctionnent correctement. Dans le contexte d'un Data Warehouse, les tests couvrent : la structure (tables, colonnes, contraintes), les donnees (integrite, volumes), et les fonctionnalites (procedures, vues).
+}
+
+Le fichier \texttt{analytics/tests/test\_dwh.py} utilise le framework \textbf{unittest} de Python. Les tests se connectent directement a la base Azure SQL et verifient l'existence et la coherence des objets.
+
+\subsection{Tests E5 existants (17 tests)}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|l|c|X|}
+\hline
+\textbf{Classe de test} & \textbf{Nb tests} & \textbf{Verifie} \\
+\hline
+\texttt{TestSchemas} & 4 & Existence des 4 schemas (stg, dwh, dm, analytics) \\
+\hline
+\texttt{TestDimensions} & 4 & Existence et contenu des dimensions (temps, geographie, demographie, activite) \\
+\hline
+\texttt{TestFaits} & 2 & Existence des tables de faits et cles etrangeres \\
+\hline
+\texttt{TestDatamarts} & 3 & Existence des vues datamarts et tableau de bord \\
+\hline
+\texttt{TestIntegrite} & 3 & Pas de cles orphelines, populations positives \\
+\hline
+\texttt{TestPerformance} & 1 & Presence des index columnstore \\
+\hline
+\end{tabularx}
+\caption{Tests E5 -- Validation de la structure de base}
+\end{table}
+
+\subsection{Tests E6 ajoutes (32 tests)}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|l|c|X|}
+\hline
+\textbf{Classe de test} & \textbf{Nb tests} & \textbf{Verifie} \\
+\hline
+\texttt{TestLogging} & 8 & Tables \texttt{log\_etl} et \texttt{log\_erreurs} (existence, colonnes), vues de monitoring, procedures \texttt{sp\_log\_etl} et \texttt{sp\_log\_erreur} \\
+\hline
+\texttt{TestBackup} & 2 & Vues de monitoring \texttt{v\_historique\_backups} et \texttt{v\_etat\_backup\_azure} \\
+\hline
+\texttt{TestSCD} & 12 & Type 1 : procedure SCD1. Type 2 : 4 colonnes SCD2 dans \texttt{dim\_geographie}, valeurs \texttt{est\_actif} valides, versions $\geq$ 1, procedures SCD2 et MERGE, index. Type 3 : 2 colonnes SCD3, procedure SCD3. Vues SCD \\
+\hline
+\texttt{TestNewFacts} & 6 & Tables \texttt{fait\_emploi} et \texttt{fait\_menages} : existence, colonnes cles, cles etrangeres \\
+\hline
+\texttt{TestRBAC} & 2 & Existence des 4 roles RBAC, procedure \texttt{sp\_creer\_acces} \\
+\hline
+\end{tabularx}
+\caption{Tests E6 -- Validation des evolutions}
+\end{table}
+
+\subsection{Extrait du code de test SCD}
+
+\begin{lstlisting}[language=Python, caption={Tests SCD Type 2 (extrait de test\_dwh.py)}]
+class TestSCD(unittest.TestCase):
+    """Tests des variations de dimensions (SCD Type 1, 2, 3)."""
+
+    def test_scd_type2_columns_exist(self):
+        """Verifie les colonnes SCD Type 2 dans dim_geographie."""
+        scd2_cols = ['date_debut_validite', 'date_fin_validite',
+                     'est_actif', 'version']
+        with self.engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = 'dwh'
+                AND TABLE_NAME = 'dim_geographie'
+            """))
+            columns = [r[0] for r in result.fetchall()]
+            for col in scd2_cols:
+                self.assertIn(col, columns,
+                    f"Colonne SCD2 '{col}' manquante")
+
+    def test_scd_type2_all_active(self):
+        """Verifie que les enregistrements initiaux sont actifs."""
+        with self.engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT COUNT(*) FROM dwh.dim_geographie
+                WHERE est_actif IS NULL
+                OR est_actif NOT IN (0, 1)
+            """))
+            self.assertEqual(result.scalar(), 0)
+
+    def test_scd_type3_columns_exist(self):
+        """Verifie les colonnes SCD Type 3 dans dim_demographie."""
+        scd3_cols = ['ancien_pcs_libelle', 'date_changement_pcs']
+        with self.engine.connect() as conn:
+            result = conn.execute(text("""
+                SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = 'dwh'
+                AND TABLE_NAME = 'dim_demographie'
+            """))
+            columns = [r[0] for r in result.fetchall()]
+            for col in scd3_cols:
+                self.assertIn(col, columns,
+                    f"Colonne SCD3 '{col}' manquante")
+\end{lstlisting}
+
+\subsection{Execution des tests}
+
+Les tests s'executent avec la commande suivante :
+
+\begin{lstlisting}[numbers=none]
+cd analytics/tests
+python test_dwh.py
+\end{lstlisting}
+
+Le resume affiche le nombre de tests E5 et E6 separement :
+
+\begin{lstlisting}[numbers=none]
+============================================================
+RESUME DES TESTS
+============================================================
+Tests executes:     49
+  - Tests E5:       17
+  - Tests E6:       32
+Succes:             49
+Echecs:             0
+Erreurs:            0
+============================================================
+\end{lstlisting}
+
+\pointimportant{Les tests doivent etre executes apres chaque deploiement de scripts SQL (008, 009, 010) pour valider que les objets ont ete crees correctement. En cas d'echec, consulter les logs dans \texttt{dwh.log\_etl} et \texttt{dwh.log\_erreurs} pour diagnostiquer le probleme.}
+
+
+%=================================================================
+%   SECTION 12 : CONFIGURATION TERRAFORM MISE A JOUR
+%=================================================================
+\newpage
+\section{Configuration Terraform mise a jour}
+
+\subsection{Politique de retention des backups}
+
+Le fichier \texttt{main.tf} a ete enrichi avec la configuration de retention des sauvegardes Azure SQL :
+
+\begin{lstlisting}[caption={Configuration Terraform des backups (main.tf)}]
+resource "azurerm_mssql_database" "sql" {
+  name      = var.sql_database_name
+  server_id = azurerm_mssql_server.sql.id
+  sku_name  = var.sql_database_sku_name
+  collation = var.sql_database_collation
+
+  # E6 - Politique de retention des backups
+  short_term_retention_policy {
+    retention_days           = 14
+    backup_interval_in_hours = 12
+  }
+
+  long_term_retention_policy {
+    weekly_retention  = "P4W"    # 4 semaines
+    monthly_retention = "P12M"   # 12 mois
+    yearly_retention  = "P3Y"    # 3 ans
+    week_of_year      = 1
+  }
+}
+\end{lstlisting}
+
+\explicationtechnique{Retention court terme vs long terme}{%
+\begin{itemize}
+    \item \textbf{Court terme} (\texttt{short\_term\_retention\_policy}) : Conserve les sauvegardes pendant 14 jours avec un backup differentiel toutes les 12 heures. Permet la restauration \textit{point-in-time} (a la seconde pres) sur les 14 derniers jours.
+    \item \textbf{Long terme} (\texttt{long\_term\_retention\_policy}) : Conserve des copies hebdomadaires (4 semaines), mensuelles (12 mois) et annuelles (3 ans). Repond aux exigences d'archivage et de conformite reglementaire.
+\end{itemize}
+}
+
+\subsection{Triggers de deploiement E6}
+
+Les triggers du deploiement \texttt{deploy\_dwh} ont ete enrichis pour inclure les nouveaux scripts SQL :
+
+\begin{lstlisting}[caption={Triggers de hash pour les scripts E6 (main.tf)}]
+resource "null_resource" "deploy_dwh" {
+  triggers = {
+    # Scripts E5
+    schemas_hash    = filesha256(".../001_create_schemas.sql")
+    dimensions_hash = filesha256(".../002_create_dimensions.sql")
+    facts_hash      = filesha256(".../003_create_facts.sql")
+    populate_hash   = filesha256(".../004_populate_dimensions.sql")
+    datamarts_hash  = filesha256(".../005_create_datamarts.sql")
+    # Scripts E6
+    logging_hash    = filesha256(".../008_configure_logging.sql")
+    backup_hash     = filesha256(".../009_configure_backup.sql")
+    scd_hash        = filesha256(".../010_scd_dimensions.sql")
+    force_redeploy  = var.dwh_force_redeploy ? timestamp() : "stable"
+  }
+}
+\end{lstlisting}
+
+\pointimportant{Le mecanisme de hash dans Terraform assure que le deploiement est relance automatiquement si un des scripts SQL est modifie. Cela garantit que la base de donnees est toujours synchronisee avec le code source (\textit{Infrastructure as Code}).}
+
+
+%=================================================================
+%                     CONCLUSION
+%=================================================================
+\newpage
+\section{Conclusion}
+
+\subsection{Bilan des evolutions realisees}
+
+Ce projet E6 a permis de faire evoluer l'entrepot de donnees construit lors du projet E5 en y integrant les composantes essentielles du \textbf{maintien en conditions operationnelles} et de la \textbf{gestion des evolutions dimensionnelles}.
+
+Les principales realisations sont :
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Methodologie ITIL} : Mise en place d'un processus structure de gestion des incidents, changements et problemes avec un outillage de ticketing et des KPIs de suivi.
+    \item \textbf{Journalisation} : Deploiement d'un systeme de logging a deux niveaux (applicatif Python et base de donnees SQL) permettant la tracabilite complete des operations ETL.
+    \item \textbf{Backup} : Mise en place d'une strategie de sauvegarde avec export BACPAC vers le Data Lake ADLS Gen2 comme derniere etape du pipeline ETL, combinee aux sauvegardes automatiques Azure (PITR), avec des objectifs RPO/RTO definis.
+    \item \textbf{Integration de sources} : Extension de l'entrepot avec l'integration des tables de faits manquantes (emploi, menages) et demonstration du processus d'ajout de nouvelles sources.
+    \item \textbf{Gestion des acces} : Documentation et automatisation de la creation d'acces via le modele RBAC existant.
+    \item \textbf{Scalabilite} : Documentation des procedures d'evolution (ajout de datamarts, montee en charge, nouvelles sources).
+    \item \textbf{SCD Types 1, 2 et 3} : Implementation des trois types de variations dimensionnelles de Kimball sur trois dimensions differentes, avec les procedures SQL et les adaptations ETL correspondantes.
+\end{enumerate}
+
+\subsection{Competences validees}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabularx}{\textwidth}{|p{3.5cm}|X|p{2.5cm}|}
+\hline
+\textbf{Competence} & \textbf{Elements de preuve} & \textbf{Sections} \\
+\hline
+\textbf{C16} -- Gerer le DWH (admin, supervision, RGPD, acces, MCO) & ITIL, journalisation, backup, RBAC, scalabilite, integration sources, tests & \S2 a \S7, \S11, \S12 \\
+\hline
+\textbf{C17} -- Variations de dimensions & SCD Types 1, 2, 3, procedures SQL/MERGE, ETL Python, modeles mis a jour, tests SCD & \S8 a \S11 \\
+\hline
+\end{tabularx}
+\caption{Correspondance competences -- livrables}
+\end{table}
+
+\subsection{Perspectives}
+
+Pour aller plus loin, les evolutions suivantes pourraient etre envisagees :
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Monitoring temps reel} : Integration d'Azure Monitor et alertes automatiques (email, Teams) en cas d'erreur ETL
+    \item \textbf{CDC (Change Data Capture)} : Capture automatique des changements dans les sources pour declencher les ETL en quasi temps reel
+    \item \textbf{Data Quality Framework} : Mise en place de regles de validation automatiques (Great Expectations, dbt tests)
+    \item \textbf{Orchestration avancee} : Migration du pipeline ETL vers Azure Data Factory ou Apache Airflow pour une planification et un monitoring natifs
+\end{itemize}
+
+
+%=================================================================
+%                     ANNEXES
+%=================================================================
+\newpage
+\appendix
+\section{Annexes}
+
+\subsection{Glossaire}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Terme} & \textbf{Definition} \\
+\hline
+CSV & Comma-Separated Values -- Format de fichier texte pour les donnees tabulaires \\
+\hline
+CDC & Change Data Capture -- Mecanisme de capture des changements dans une base de donnees \\
+\hline
+DWH & Data Warehouse -- Entrepot de donnees \\
+\hline
+ETL & Extract, Transform, Load -- Processus d'extraction, transformation et chargement de donnees \\
+\hline
+ITIL & Information Technology Infrastructure Library -- Referentiel de bonnes pratiques IT \\
+\hline
+KPI & Key Performance Indicator -- Indicateur cle de performance \\
+\hline
+MCO & Maintien en Conditions Operationnelles \\
+\hline
+MERGE & Instruction SQL combinant INSERT et UPDATE en une seule operation \\
+\hline
+RBAC & Role-Based Access Control -- Controle d'acces base sur les roles \\
+\hline
+RGPD & Reglement General sur la Protection des Donnees \\
+\hline
+RPO & Recovery Point Objective -- Perte de donnees maximale acceptable \\
+\hline
+RTO & Recovery Time Objective -- Temps de restauration maximal acceptable \\
+\hline
+SCD & Slowly Changing Dimension -- Dimension a evolution lente \\
+\hline
+\end{tabularx}
+\caption{Glossaire des termes techniques}
+\end{table}
+
+\subsection{Arborescence du projet}
+
+\begin{lstlisting}[numbers=none]
+Projet-Data-ENG-E6/
+  Terraform/
+    main.tf                    # Infrastructure Azure + retention backups [E6]
+    adf_linked_services.tf     # Data Factory
+    rbac_configuration.tf      # RBAC Azure
+    variables.tf / outputs.tf
+    sql/
+      001_create_schemas.sql   # 4 schemas (stg, dwh, dm, analytics)
+      002_create_dimensions.sql # 6 dimensions
+      003_create_facts.sql     # 7 tables de faits
+      004_populate_dimensions.sql
+      005_create_datamarts.sql # 5 datamarts + dashboard
+      006_configure_security.sql # 4 roles RBAC
+      007_configure_performance.sql
+      008_configure_logging.sql  # [E6] log_etl, log_erreurs, vues monitoring
+      009_configure_backup.sql   # [E6] Vues monitoring backups
+      010_scd_dimensions.sql     # [E6] SCD Type 1/2/3, MERGE, vues SCD
+      deploy_dwh.py
+  analytics/
+    etl/
+      run_etl.py               # Orchestrateur ETL [E6: logging + backup]
+      load_dimensions.py       # Dimensions + SCD Type 1/2/3 [E6]
+      load_facts.py            # Faits + emploi + menages [E6]
+      backup_to_datalake.py    # [E6] Export BACPAC vers ADLS Gen2
+    tests/
+      test_dwh.py              # 17 tests E5 + 32 tests E6
+  docs/
+    E5_DATA_WAREHOUSE_GUIDE.md
+    E6_MAINTENANCE_METHODOLOGY.md  # [E6] ITIL, incidents, KPIs
+    E6_SCALABILITY_PROCEDURES.md   # [E6] Procedures d'evolution
+  rapports/
+    E6_Evolution_Entrepot/
+      rapport_E6.tex           # Ce rapport
+  uploads/
+    landing/csv/
+      EMPLOI_CHOMAGE_hauts_de_france.csv  # Source emploi [E6]
+      Menage_hauts_de_france.csv          # Source menages [E6]
+\end{lstlisting}
+
+
+\end{document}
