@@ -86,9 +86,9 @@ GO
 -- ============================================================
 
 GRANT SELECT ON analytics.v_historique_backups TO role_analyst;
-GRANT SELECT ON analytics.v_historique_backups TO role_bi_reader;
+GRANT SELECT ON analytics.v_historique_backups TO role_consultant;
 GRANT SELECT ON analytics.v_etat_backup_azure TO role_analyst;
-GRANT SELECT ON analytics.v_etat_backup_azure TO role_bi_reader;
+GRANT SELECT ON analytics.v_etat_backup_azure TO role_consultant;
 
 PRINT '========================================';
 PRINT 'CONFIGURATION BACKUP AZURE SQL TERMINEE';

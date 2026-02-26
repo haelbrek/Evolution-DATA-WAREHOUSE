@@ -52,7 +52,7 @@ def get_connection_string(config: dict) -> str:
         server = f"{server}.database.windows.net"
 
     # Tester les drivers ODBC disponibles
-    for driver in ['ODBC Driver 18 for SQL Server', 'ODBC Driver 17 for SQL Server']:
+    for driver in ['ODBC Driver 17 for SQL Server', 'ODBC Driver 18 for SQL Server']:
         try:
             driver_encoded = driver.replace(' ', '+')
             return f"mssql+pyodbc://{user}:{password}@{server}:1433/{database}?driver={driver_encoded}&Encrypt=yes&TrustServerCertificate=yes"
@@ -599,12 +599,13 @@ def load_dim_logement(engine) -> int:
 
 def main():
     parser = argparse.ArgumentParser(description='ETL - Chargement des dimensions')
-    parser.add_argument('--server', help='Serveur SQL')
+    parser.add_argument('--server',   help='Serveur SQL')
     parser.add_argument('--database', help='Base de donnees')
-    parser.add_argument('--user', help='Utilisateur SQL')
+    parser.add_argument('--user',     help='Utilisateur SQL')
     parser.add_argument('--password', help='Mot de passe SQL')
     parser.add_argument('--communes', help='Chemin vers communes.json')
-    parser.add_argument('--preview', action='store_true', help='Mode apercu')
+    parser.add_argument('--preview',  action='store_true', help='Mode apercu')
+    parser.add_argument('--report',   help='Chemin JSON pour ecrire le rapport par table')
     args = parser.parse_args()
 
     print("=" * 60)
@@ -613,9 +614,9 @@ def main():
     print("=" * 60)
 
     config = {
-        'server': args.server or os.getenv('AZURE_SQL_SERVER'),
+        'server':   args.server   or os.getenv('AZURE_SQL_SERVER'),
         'database': args.database or os.getenv('AZURE_SQL_DATABASE'),
-        'user': args.user or os.getenv('AZURE_SQL_USER'),
+        'user':     args.user     or os.getenv('AZURE_SQL_USER'),
         'password': args.password or os.getenv('AZURE_SQL_PASSWORD'),
     }
 
@@ -623,43 +624,85 @@ def main():
         print("[PREVIEW] Mode apercu - pas de connexion SQL")
         return 0
 
+    # ----------------------------------------------------------------
+    # Connexion
+    # ----------------------------------------------------------------
     try:
         connection_string = get_connection_string(config)
         engine = create_engine(connection_string)
-
-        start_time = datetime.now()
-        log_etl_db(engine, 'load_dimensions', 'ALL', 'DEBUT',
-                   message='Demarrage du chargement des dimensions')
-
-        total = 0
-        total += load_dim_temps(engine)
-        total += load_dim_geographie(engine, args.communes)
-        total += load_dim_demographie(engine)
-        total += load_dim_activite(engine)
-        total += load_dim_indicateur(engine)
-        total += load_dim_logement(engine)
-
-        duree = (datetime.now() - start_time).total_seconds()
-        log_etl_db(engine, 'load_dimensions', 'ALL', 'SUCCES',
-                   nb_lignes=total, duree_sec=duree,
-                   message=f'{total} lignes inserees en {duree:.1f}s')
-
-        logger.info(f"TOTAL: {total} lignes inserees dans les dimensions")
-        print("\n" + "=" * 60)
-        print(f"TOTAL: {total} lignes inserees dans les dimensions")
-        print("=" * 60)
-
-        return 0
-
     except Exception as e:
-        logger.error(f"Erreur chargement dimensions: {e}")
-        try:
-            log_etl_db(engine, 'load_dimensions', 'ALL', 'ERREUR',
-                       message=str(e)[:500])
-        except:
-            pass
-        print(f"[ERROR] {e}")
+        logger.error(f"Impossible de se connecter a la base : {e}")
         return 1
+
+    start_time = datetime.now()
+    log_etl_db(engine, 'load_dimensions', 'ALL', 'DEBUT',
+               message='Demarrage du chargement des dimensions')
+
+    # ----------------------------------------------------------------
+    # Chargement table par table avec try/except individuel
+    # ----------------------------------------------------------------
+    TABLES = [
+        ('dwh.dim_temps',        lambda: load_dim_temps(engine)),
+        ('dwh.dim_geographie',   lambda: load_dim_geographie(engine, args.communes)),
+        ('dwh.dim_demographie',  lambda: load_dim_demographie(engine)),
+        ('dwh.dim_activite',     lambda: load_dim_activite(engine)),
+        ('dwh.dim_indicateur',   lambda: load_dim_indicateur(engine)),
+        ('dwh.dim_logement',     lambda: load_dim_logement(engine)),
+    ]
+
+    rapport   = {}
+    total     = 0
+    has_error = False
+
+    for nom, fn in TABLES:
+        heure = datetime.now().strftime('%H:%M:%S')
+        t0    = datetime.now()
+        try:
+            nb     = fn()
+            duree  = (datetime.now() - t0).total_seconds()
+            statut = 'OK' if nb > 0 else 'SKIP'
+            total += nb
+            rapport[nom] = {
+                'statut': statut, 'nb_lignes': nb,
+                'heure': heure, 'duree_sec': duree,
+            }
+            log_etl_db(engine, 'load_dimensions', nom, statut,
+                       nb_lignes=nb, duree_sec=duree)
+        except Exception as e:
+            duree     = (datetime.now() - t0).total_seconds()
+            has_error = True
+            rapport[nom] = {
+                'statut': 'ERREUR', 'nb_lignes': 0,
+                'heure': heure, 'duree_sec': duree,
+                'erreur': str(e),
+            }
+            logger.error(f"Erreur chargement {nom}: {e}")
+            log_etl_db(engine, 'load_dimensions', nom, 'ERREUR',
+                       duree_sec=duree, message=str(e)[:500])
+
+    # ----------------------------------------------------------------
+    # Rapport final
+    # ----------------------------------------------------------------
+    duree_totale = (datetime.now() - start_time).total_seconds()
+    statut_final = 'ERREUR_PARTIELLE' if has_error else 'SUCCES'
+    log_etl_db(engine, 'load_dimensions', 'ALL', statut_final,
+               nb_lignes=total, duree_sec=duree_totale,
+               message=f'{total} lignes inserees en {duree_totale:.1f}s')
+
+    logger.info(f"TOTAL: {total} lignes inserees dans les dimensions ({statut_final})")
+    print("\n" + "=" * 60)
+    print(f"TOTAL    : {total} lignes inserees dans les dimensions")
+    print(f"STATUT   : {statut_final}")
+    print("=" * 60)
+
+    # Ecrire le rapport JSON si demande
+    if args.report:
+        import json
+        from pathlib import Path
+        Path(args.report).write_text(json.dumps(rapport, ensure_ascii=False, indent=2))
+        logger.info(f"Rapport dimensions ecrit dans {args.report}")
+
+    return 1 if has_error else 0
 
 
 if __name__ == '__main__':

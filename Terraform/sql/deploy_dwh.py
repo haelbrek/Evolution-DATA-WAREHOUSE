@@ -53,7 +53,7 @@ def get_sql_connection(config: dict) -> str:
     if not server.endswith('.database.windows.net'):
         server = f"{server}.database.windows.net"
 
-    return f"mssql+pyodbc://{user}:{password}@{server}:1433/{database}?driver=ODBC+Driver+18+for+SQL+Server&Encrypt=yes&TrustServerCertificate=yes"
+    return f"mssql+pyodbc://{user}:{password}@{server}:1433/{database}?driver=ODBC+Driver+17+for+SQL+Server&Encrypt=yes&TrustServerCertificate=yes"
 
 
 def get_sql_scripts(sql_dir: Path) -> list:
@@ -95,7 +95,7 @@ def execute_sql_file(connection_string: str, sql_file: Path, preview: bool = Fal
 
         # Construire la connection string pyodbc
         conn_str = (
-            f"DRIVER={{ODBC Driver 18 for SQL Server}};"
+            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
             f"SERVER={server},{port};"
             f"DATABASE={database};"
             f"UID={user};"

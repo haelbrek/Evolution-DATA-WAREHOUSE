@@ -67,7 +67,7 @@ def get_connection_string(config: dict) -> str:
     if not server.endswith('.database.windows.net'):
         server = f"{server}.database.windows.net"
 
-    driver = 'ODBC+Driver+18+for+SQL+Server'
+    driver = 'ODBC+Driver+17+for+SQL+Server'
     return f"mssql+pyodbc://{user}:{password}@{server}:1433/{database}?driver={driver}&Encrypt=yes&TrustServerCertificate=yes"
 
 
@@ -117,20 +117,23 @@ def load_fait_population(engine) -> int:
     # Transformer les donnees
     df_fact = df_stg.copy()
 
+    # Detection des colonnes (insensible a la casse)
+    col_map = {c.upper(): c for c in df_fact.columns}
+
     # Extraire l'annee du champ year ou time_period
-    if 'year' in df_fact.columns:
-        df_fact['annee'] = df_fact['year'].astype(int)
-    elif 'time_period' in df_fact.columns:
-        df_fact['annee'] = df_fact['time_period'].astype(int)
+    if 'YEAR' in col_map:
+        df_fact['annee'] = df_fact[col_map['YEAR']].astype(int)
+    elif 'TIME_PERIOD' in col_map:
+        df_fact['annee'] = df_fact[col_map['TIME_PERIOD']].astype(int)
 
     # Mapper les IDs de dimensions
     df_fact['temps_id'] = df_fact['annee'].map(temps_map)
 
     # Extraire le code departement
-    if 'geo_code' in df_fact.columns:
-        df_fact['dept_code'] = df_fact['geo_code'].str.zfill(2)
-    elif 'departement' in df_fact.columns:
-        df_fact['dept_code'] = df_fact['departement'].str.zfill(2)
+    if 'GEO_CODE' in col_map:
+        df_fact['dept_code'] = df_fact[col_map['GEO_CODE']].str.zfill(2)
+    elif 'DEPARTEMENT' in col_map:
+        df_fact['dept_code'] = df_fact[col_map['DEPARTEMENT']].astype(str).str.zfill(2)
 
     df_fact['geo_id'] = df_fact['dept_code'].map(geo_map)
 
@@ -141,10 +144,10 @@ def load_fait_population(engine) -> int:
     df_fact['demo_id'] = default_demo_id
 
     # Selectionner les colonnes pour la table de faits
-    if 'population_value' in df_fact.columns:
-        df_fact['population'] = df_fact['population_value']
-    elif 'obs_value' in df_fact.columns:
-        df_fact['population'] = df_fact['obs_value']
+    if 'POPULATION_VALUE' in col_map:
+        df_fact['population'] = df_fact[col_map['POPULATION_VALUE']]
+    elif 'OBS_VALUE' in col_map:
+        df_fact['population'] = df_fact[col_map['OBS_VALUE']]
 
     df_fact['source_fichier'] = 'stg_population'
 
@@ -197,6 +200,10 @@ def load_fait_evenements_demo(engine) -> int:
 
     # Preparer les donnees
     records = []
+
+    # Normaliser les noms de colonnes en minuscules pour la compatibilite
+    df_naiss.columns = df_naiss.columns.str.lower()
+    df_deces.columns = df_deces.columns.str.lower()
 
     # Traiter les naissances
     for _, row in df_naiss.iterrows():
@@ -287,12 +294,16 @@ def load_fait_entreprises(engine) -> int:
         result = conn.execute(text("SELECT MIN(activite_id) FROM dwh.dim_activite"))
         default_activite_id = result.scalar() or 1
 
-    # Agreger par annee/departement
-    df_stg['annee'] = df_stg['year'].astype(int) if 'year' in df_stg.columns else df_stg['time_period'].astype(int)
-    df_stg['dept_code'] = df_stg['geo_code'].str.zfill(2) if 'geo_code' in df_stg.columns else df_stg['departement'].str.zfill(2)
+    # Agreger par annee/departement (insensible a la casse)
+    col_map = {c.upper(): c for c in df_stg.columns}
+    annee_col = col_map.get('YEAR', col_map.get('TIME_PERIOD'))
+    dept_col  = col_map.get('GEO_CODE', col_map.get('DEPARTEMENT'))
+    value_col = col_map.get('CREATION_COUNT', col_map.get('OBS_VALUE'))
+    df_stg['annee']     = df_stg[annee_col].astype(int)
+    df_stg['dept_code'] = df_stg[dept_col].astype(str).str.zfill(2)
 
     df_agg = df_stg.groupby(['annee', 'dept_code']).agg({
-        'creation_count' if 'creation_count' in df_stg.columns else 'obs_value': 'sum'
+        value_col: 'sum'
     }).reset_index()
     df_agg.columns = ['annee', 'dept_code', 'nb_creations_entreprises']
 
@@ -638,13 +649,26 @@ def load_fait_menages(engine) -> int:
     return len(df_fact)
 
 
+def _staging_exists(engine, table_name: str) -> bool:
+    """Verifie si une table staging existe dans la base."""
+    with engine.connect() as conn:
+        count = conn.execute(text("""
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+            WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = :tbl
+        """), {'tbl': table_name}).scalar()
+    return count > 0
+
+
 def main():
     parser = argparse.ArgumentParser(description='ETL - Chargement des tables de faits')
-    parser.add_argument('--server', help='Serveur SQL')
-    parser.add_argument('--database', help='Base de donnees')
-    parser.add_argument('--user', help='Utilisateur SQL')
-    parser.add_argument('--password', help='Mot de passe SQL')
-    parser.add_argument('--preview', action='store_true', help='Mode apercu')
+    parser.add_argument('--server',         help='Serveur SQL')
+    parser.add_argument('--database',       help='Base de donnees')
+    parser.add_argument('--user',           help='Utilisateur SQL')
+    parser.add_argument('--password',       help='Mot de passe SQL')
+    parser.add_argument('--preview',        action='store_true', help='Mode apercu')
+    parser.add_argument('--staging-failed', action='store_true',
+                        help='Indique que le staging a echoue globalement (cascade)')
+    parser.add_argument('--report',         help='Chemin JSON pour ecrire le rapport par table')
     args = parser.parse_args()
 
     print("=" * 60)
@@ -653,9 +677,9 @@ def main():
     print("=" * 60)
 
     config = {
-        'server': args.server or os.getenv('AZURE_SQL_SERVER'),
+        'server':   args.server   or os.getenv('AZURE_SQL_SERVER'),
         'database': args.database or os.getenv('AZURE_SQL_DATABASE'),
-        'user': args.user or os.getenv('AZURE_SQL_USER'),
+        'user':     args.user     or os.getenv('AZURE_SQL_USER'),
         'password': args.password or os.getenv('AZURE_SQL_PASSWORD'),
     }
 
@@ -663,46 +687,113 @@ def main():
         print("[PREVIEW] Mode apercu")
         return 0
 
+    # ----------------------------------------------------------------
+    # Connexion
+    # ----------------------------------------------------------------
     try:
         connection_string = get_connection_string(config)
         engine = create_engine(connection_string)
-
-        start_time = datetime.now()
-        log_etl_db(engine, 'load_facts', 'ALL', 'DEBUT',
-                   message='Demarrage du chargement des faits')
-
-        total = 0
-        total += load_fait_population(engine)
-        total += load_fait_evenements_demo(engine)
-        total += load_fait_entreprises(engine)
-        total += load_fait_revenus(engine)
-        # E6 - Nouvelles tables de faits
-        total += load_fait_emploi(engine)
-        total += load_fait_menages(engine)
-
-        duree = (datetime.now() - start_time).total_seconds()
-        log_etl_db(engine, 'load_facts', 'ALL', 'SUCCES',
-                   nb_lignes=total, duree_sec=duree,
-                   message=f'{total} lignes inserees en {duree:.1f}s')
-
-        logger.info(f"TOTAL: {total} lignes inserees dans les tables de faits")
-        print("\n" + "=" * 60)
-        print(f"TOTAL: {total} lignes inserees dans les tables de faits")
-        print("=" * 60)
-
-        return 0
-
     except Exception as e:
-        logger.error(f"Erreur chargement faits: {e}")
-        try:
-            log_etl_db(engine, 'load_facts', 'ALL', 'ERREUR',
-                       message=str(e)[:500])
-        except:
-            pass
-        print(f"[ERROR] {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Impossible de se connecter a la base : {e}")
         return 1
+
+    start_time    = datetime.now()
+    staging_failed = getattr(args, 'staging_failed', False)
+
+    log_etl_db(engine, 'load_facts', 'ALL', 'DEBUT',
+               message='Demarrage du chargement des faits'
+               + (' (staging en echec)' if staging_failed else ''))
+
+    # ----------------------------------------------------------------
+    # Dependances staging par table de faits
+    # ----------------------------------------------------------------
+    TABLES = [
+        ('dwh.fait_population',      load_fait_population,      ['stg_population']),
+        ('dwh.fait_evenements_demo', load_fait_evenements_demo, ['stg_naissances', 'stg_deces']),
+        ('dwh.fait_entreprises',     load_fait_entreprises,     ['stg_creation_entreprises']),
+        ('dwh.fait_revenus',         load_fait_revenus,         ['stg_ds_filosofi']),
+        ('dwh.fait_emploi',          load_fait_emploi,          ['stg_emploi_chomage']),
+        ('dwh.fait_menages',         load_fait_menages,         ['stg_menage']),
+    ]
+
+    rapport   = {}
+    total     = 0
+    has_error = False
+
+    for nom, fn, stg_requises in TABLES:
+        heure = datetime.now().strftime('%H:%M:%S')
+
+        # Cas 1 : staging global en echec — on ignore toutes les tables de faits
+        if staging_failed:
+            rapport[nom] = {
+                'statut': 'IGNORE', 'nb_lignes': 0,
+                'heure': heure, 'duree_sec': 0,
+                'erreur': 'Staging global en echec — etape ignoree en cascade',
+            }
+            logger.warning(f"{nom} ignore : staging global en echec")
+            continue
+
+        # Cas 2 : verifier que les tables staging sources existent
+        manquantes = [t for t in stg_requises if not _staging_exists(engine, t)]
+        if manquantes:
+            rapport[nom] = {
+                'statut': 'IGNORE', 'nb_lignes': 0,
+                'heure': heure, 'duree_sec': 0,
+                'erreur': f"Tables staging manquantes : {', '.join(manquantes)}",
+            }
+            logger.warning(f"{nom} ignore : tables staging manquantes {manquantes}")
+            log_etl_db(engine, 'load_facts', nom, 'IGNORE',
+                       message=f"Staging manquant: {manquantes}")
+            continue
+
+        # Cas 3 : chargement normal avec try/except individuel
+        t0 = datetime.now()
+        try:
+            nb    = fn(engine)
+            duree = (datetime.now() - t0).total_seconds()
+            statut = 'OK' if nb > 0 else 'SKIP'
+            total += nb
+            rapport[nom] = {
+                'statut': statut, 'nb_lignes': nb,
+                'heure': heure, 'duree_sec': duree,
+            }
+            log_etl_db(engine, 'load_facts', nom, statut,
+                       nb_lignes=nb, duree_sec=duree)
+        except Exception as e:
+            duree     = (datetime.now() - t0).total_seconds()
+            has_error = True
+            rapport[nom] = {
+                'statut': 'ERREUR', 'nb_lignes': 0,
+                'heure': heure, 'duree_sec': duree,
+                'erreur': str(e),
+            }
+            logger.error(f"Erreur chargement {nom}: {e}")
+            log_etl_db(engine, 'load_facts', nom, 'ERREUR',
+                       duree_sec=duree, message=str(e)[:500])
+
+    # ----------------------------------------------------------------
+    # Rapport final
+    # ----------------------------------------------------------------
+    duree_totale = (datetime.now() - start_time).total_seconds()
+    statut_final = 'ERREUR_PARTIELLE' if has_error else 'SUCCES'
+    log_etl_db(engine, 'load_facts', 'ALL', statut_final,
+               nb_lignes=total, duree_sec=duree_totale,
+               message=f'{total} lignes inserees en {duree_totale:.1f}s')
+
+    logger.info(f"TOTAL: {total} lignes inserees dans les tables de faits ({statut_final})")
+    print("\n" + "=" * 60)
+    print(f"TOTAL    : {total} lignes inserees dans les tables de faits")
+    print(f"STATUT   : {statut_final}")
+    print("=" * 60)
+
+    # Ecrire le rapport JSON si demande
+    if args.report:
+        import json
+        from pathlib import Path
+        Path(args.report).write_text(json.dumps(rapport, ensure_ascii=False, indent=2))
+        logger.info(f"Rapport faits ecrit dans {args.report}")
+
+    return 1 if has_error else 0
 
 
 if __name__ == '__main__':

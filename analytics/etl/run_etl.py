@@ -5,19 +5,22 @@ Projet Data Engineering - Region Hauts-de-France
 
 Ce script orchestre l'ensemble du processus ETL :
 1. Chargement des donnees sources vers staging
-2. Alimentation des dimensions (avec detection SCD)
-3. Alimentation des tables de faits (+ emploi, menages)
-4. Actualisation des statistiques et datamarts
-5. Backup BACPAC vers Data Lake (apres ETL)
+2. Chargement des donnees de securite RLS (agences, employes)
+3. Alimentation des dimensions (avec detection SCD)
+4. Alimentation des tables de faits (+ emploi, menages)
+5. Actualisation des statistiques et datamarts
+6. Backup BACPAC vers Data Lake (apres ETL)
 
 Usage:
     python run_etl.py --full           # Pipeline complet (avec backup)
+    python run_etl.py --security       # Securite RLS uniquement
     python run_etl.py --dimensions     # Dimensions uniquement
     python run_etl.py --facts          # Faits uniquement
     python run_etl.py --refresh        # Rafraichir les vues
     python run_etl.py --backup         # Backup BACPAC uniquement
 """
 
+import json
 import os
 import sys
 import re
@@ -111,7 +114,7 @@ def run_sql_script(script_path: str, config: dict) -> bool:
         import pyodbc
 
         conn_str = (
-            f"DRIVER={{ODBC Driver 18 for SQL Server}};"
+            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
             f"SERVER={config['server']},1433;"
             f"DATABASE={config['database']};"
             f"UID={config['user']};"
@@ -146,13 +149,20 @@ def run_sql_script(script_path: str, config: dict) -> bool:
         return False
 
 
+def _read_report(report_path: str) -> dict:
+    """Lit un rapport JSON ecrit par un sous-script. Retourne {} si absent."""
+    try:
+        return json.loads(Path(report_path).read_text(encoding='utf-8'))
+    except Exception:
+        return {}
+
+
 def step_load_staging(config: dict) -> bool:
     """Etape 1: Charger les donnees sources vers staging."""
     print("\n" + "="*60)
     print("ETAPE 1: CHARGEMENT STAGING")
     print("="*60)
 
-    # Utiliser le script export_to_sql existant
     export_script = Path(__file__).parent.parent / 'export_to_sql.py'
     if export_script.exists():
         cmd = [sys.executable, str(export_script)]
@@ -164,37 +174,52 @@ def step_load_staging(config: dict) -> bool:
         return True
 
 
-def step_load_dimensions(config: dict, communes_path: str = None) -> bool:
-    """Etape 2: Alimenter les dimensions."""
+def step_load_security() -> bool:
+    """Etape 2: Charger les donnees de securite RLS (agences, employes, zones)."""
     print("\n" + "="*60)
-    print("ETAPE 2: CHARGEMENT DIMENSIONS")
+    print("ETAPE 2: CHARGEMENT SECURITE RLS")
+    print("="*60)
+    return run_script('load_security.py', ['--reset', '--load'])
+
+
+def step_load_dimensions(config: dict, communes_path: str = None,
+                         report_path: str = None) -> bool:
+    """Etape 2: Alimenter les dimensions. Ecrit un rapport JSON si report_path fourni."""
+    print("\n" + "="*60)
+    print("ETAPE 3: CHARGEMENT DIMENSIONS")
     print("="*60)
 
     args = [
-        '--server', config['server'],
+        '--server',   config['server'],
         '--database', config['database'],
-        '--user', config['user'],
+        '--user',     config['user'],
         '--password', config['password'],
     ]
-
     if communes_path:
         args.extend(['--communes', communes_path])
+    if report_path:
+        args.extend(['--report', report_path])
 
     return run_script('load_dimensions.py', args)
 
 
-def step_load_facts(config: dict) -> bool:
-    """Etape 3: Alimenter les tables de faits."""
+def step_load_facts(config: dict, staging_failed: bool = False,
+                    report_path: str = None) -> bool:
+    """Etape 3: Alimenter les tables de faits. Gere la cascade staging."""
     print("\n" + "="*60)
-    print("ETAPE 3: CHARGEMENT TABLES DE FAITS")
+    print("ETAPE 4: CHARGEMENT TABLES DE FAITS")
     print("="*60)
 
     args = [
-        '--server', config['server'],
+        '--server',   config['server'],
         '--database', config['database'],
-        '--user', config['user'],
+        '--user',     config['user'],
         '--password', config['password'],
     ]
+    if staging_failed:
+        args.append('--staging-failed')
+    if report_path:
+        args.extend(['--report', report_path])
 
     return run_script('load_facts.py', args)
 
@@ -202,7 +227,7 @@ def step_load_facts(config: dict) -> bool:
 def step_refresh_views(config: dict) -> bool:
     """Etape 4: Actualiser les statistiques et vues."""
     print("\n" + "="*60)
-    print("ETAPE 4: ACTUALISATION STATISTIQUES")
+    print("ETAPE 5: ACTUALISATION STATISTIQUES")
     print("="*60)
 
     sql = """
@@ -224,7 +249,7 @@ def step_refresh_views(config: dict) -> bool:
         import pyodbc
 
         conn_str = (
-            f"DRIVER={{ODBC Driver 18 for SQL Server}};"
+            f"DRIVER={{ODBC Driver 17 for SQL Server}};"
             f"SERVER={config['server']},1433;"
             f"DATABASE={config['database']};"
             f"UID={config['user']};"
@@ -251,6 +276,7 @@ def main():
     parser = argparse.ArgumentParser(description='E6 - Pipeline ETL Principal')
     parser.add_argument('--full', action='store_true', help='Pipeline complet')
     parser.add_argument('--staging', action='store_true', help='Staging uniquement')
+    parser.add_argument('--security', action='store_true', help='Securite RLS uniquement (agences, employes)')
     parser.add_argument('--dimensions', action='store_true', help='Dimensions uniquement')
     parser.add_argument('--facts', action='store_true', help='Faits uniquement')
     parser.add_argument('--refresh', action='store_true', help='Rafraichir stats/vues')
@@ -265,7 +291,7 @@ def main():
     args = parser.parse_args()
 
     # Si aucune option, executer le pipeline complet
-    if not any([args.full, args.staging, args.dimensions, args.facts, args.refresh, args.backup]):
+    if not any([args.full, args.staging, args.security, args.dimensions, args.facts, args.refresh, args.backup]):
         args.full = True
 
     print("=" * 60)
@@ -290,54 +316,225 @@ def main():
     print(f"[CONFIG] Storage Account: {config.get('storage_account', '(vide)')}")
     print(f"[CONFIG] Resource Group: {config.get('resource_group', '(vide)')}")
 
-    success = True
-    steps_run = 0
-    steps_ok = 0
+    # ----------------------------------------------------------------
+    # Chargement de la configuration email
+    # ----------------------------------------------------------------
+    from etl_notifier import get_smtp_config, send_success_email, send_error_email
+    smtp_config = get_smtp_config()
 
-    # Executer les etapes demandees
+    # Chemins des rapports JSON temporaires
+    etl_dir      = Path(__file__).parent
+    report_dims  = str(etl_dir / '_rapport_dimensions.json')
+    report_facts = str(etl_dir / '_rapport_facts.json')
+
+    rapport_etapes  = {}   # Recapitulatif par etape pour l'email
+    rapport_details = {}   # Detail par table pour l'email
+    success         = True
+    staging_ok      = True
+
+    # ----------------------------------------------------------------
+    # ETAPE 1 : Staging
+    # ----------------------------------------------------------------
     if args.full or args.staging:
-        steps_run += 1
-        if step_load_staging(config):
-            steps_ok += 1
+        t0    = datetime.now()
+        heure = datetime.now().strftime('%H:%M:%S')
+        ok    = step_load_staging(config)
+        duree = (datetime.now() - t0).total_seconds()
+
+        if ok:
+            rapport_etapes['staging'] = {
+                'statut': 'OK', 'nb_lignes': 0,
+                'heure': heure, 'duree_sec': duree,
+            }
+        else:
+            staging_ok = False
+            success    = False
+            rapport_etapes['staging'] = {
+                'statut': 'ERREUR', 'nb_lignes': 0,
+                'heure': heure, 'duree_sec': duree,
+            }
+            send_error_email(
+                etape='Staging',
+                table='export_to_sql.py',
+                erreur='Le script de staging a retourne un code erreur. '
+                       'Verifiez les logs dans etl_pipeline.log.',
+                heure=heure,
+                rapport_partiel=rapport_details,
+                smtp_config=smtp_config,
+            )
+
+    # ----------------------------------------------------------------
+    # ETAPE 2 : Securite RLS
+    # ----------------------------------------------------------------
+    if args.full or args.security:
+        t0    = datetime.now()
+        heure = datetime.now().strftime('%H:%M:%S')
+        ok    = step_load_security()
+        duree = (datetime.now() - t0).total_seconds()
+
+        if ok:
+            rapport_etapes['securite'] = {
+                'statut': 'OK', 'nb_lignes': 0,
+                'heure': heure, 'duree_sec': duree,
+            }
         else:
             success = False
+            rapport_etapes['securite'] = {
+                'statut': 'ERREUR', 'nb_lignes': 0,
+                'heure': heure, 'duree_sec': duree,
+            }
+            send_error_email(
+                etape='Securite RLS',
+                table='security.agences / security.employes',
+                erreur='Le chargement des donnees RLS a echoue. '
+                       'Verifiez les logs dans etl_pipeline.log.',
+                heure=heure,
+                rapport_partiel=rapport_details,
+                smtp_config=smtp_config,
+            )
 
+    # ----------------------------------------------------------------
+    # ETAPE 3 : Dimensions
+    # ----------------------------------------------------------------
     if args.full or args.dimensions:
-        steps_run += 1
-        if step_load_dimensions(config, args.communes):
-            steps_ok += 1
+        t0    = datetime.now()
+        heure = datetime.now().strftime('%H:%M:%S')
+        ok    = step_load_dimensions(config, args.communes, report_path=report_dims)
+        duree = (datetime.now() - t0).total_seconds()
+
+        dims_detail = _read_report(report_dims)
+        rapport_details.update(dims_detail)
+
+        # Compter les erreurs dans le detail
+        erreurs_dims = [n for n, i in dims_detail.items() if i.get('statut') == 'ERREUR']
+        nb_dims      = sum(i.get('nb_lignes', 0) for i in dims_detail.values())
+
+        if ok and not erreurs_dims:
+            rapport_etapes['dimensions'] = {
+                'statut': 'OK', 'nb_lignes': nb_dims,
+                'heure': heure, 'duree_sec': duree,
+            }
         else:
             success = False
+            rapport_etapes['dimensions'] = {
+                'statut': 'ERREUR_PARTIELLE' if erreurs_dims else 'ERREUR',
+                'nb_lignes': nb_dims, 'heure': heure, 'duree_sec': duree,
+            }
+            for nom in erreurs_dims:
+                info = dims_detail[nom]
+                send_error_email(
+                    etape='Dimensions',
+                    table=nom,
+                    erreur=info.get('erreur', 'Erreur inconnue'),
+                    heure=info.get('heure', heure),
+                    rapport_partiel={k: v for k, v in dims_detail.items() if k != nom},
+                    smtp_config=smtp_config,
+                )
 
+    # ----------------------------------------------------------------
+    # ETAPE 4 : Faits (avec flag cascade staging)
+    # ----------------------------------------------------------------
     if args.full or args.facts:
-        steps_run += 1
-        if step_load_facts(config):
-            steps_ok += 1
+        t0    = datetime.now()
+        heure = datetime.now().strftime('%H:%M:%S')
+        ok    = step_load_facts(config, staging_failed=not staging_ok,
+                                report_path=report_facts)
+        duree = (datetime.now() - t0).total_seconds()
+
+        facts_detail = _read_report(report_facts)
+        rapport_details.update(facts_detail)
+
+        erreurs_facts = [n for n, i in facts_detail.items() if i.get('statut') == 'ERREUR']
+        nb_facts      = sum(i.get('nb_lignes', 0) for i in facts_detail.values())
+
+        if ok and not erreurs_facts:
+            rapport_etapes['faits'] = {
+                'statut': 'OK', 'nb_lignes': nb_facts,
+                'heure': heure, 'duree_sec': duree,
+            }
         else:
             success = False
+            rapport_etapes['faits'] = {
+                'statut': 'ERREUR_PARTIELLE' if erreurs_facts else 'ERREUR',
+                'nb_lignes': nb_facts, 'heure': heure, 'duree_sec': duree,
+            }
+            for nom in erreurs_facts:
+                info = facts_detail[nom]
+                send_error_email(
+                    etape='Faits',
+                    table=nom,
+                    erreur=info.get('erreur', 'Erreur inconnue'),
+                    heure=info.get('heure', heure),
+                    rapport_partiel={k: v for k, v in facts_detail.items() if k != nom},
+                    smtp_config=smtp_config,
+                )
 
+    # ----------------------------------------------------------------
+    # ETAPE 5 : Refresh vues
+    # ----------------------------------------------------------------
     if args.full or args.refresh:
-        steps_run += 1
-        if step_refresh_views(config):
-            steps_ok += 1
-        else:
-            success = False
+        t0    = datetime.now()
+        heure = datetime.now().strftime('%H:%M:%S')
+        ok    = step_refresh_views(config)
+        duree = (datetime.now() - t0).total_seconds()
+        rapport_etapes['refresh'] = {
+            'statut': 'OK' if ok else 'ERREUR',
+            'nb_lignes': 0, 'heure': heure, 'duree_sec': duree,
+        }
 
+    # ----------------------------------------------------------------
+    # ETAPE 6 : Backup BACPAC
+    # ----------------------------------------------------------------
     if args.full or args.backup:
         from backup_to_datalake import step_backup_datalake
-        steps_run += 1
-        if step_backup_datalake(config):
-            steps_ok += 1
+        t0    = datetime.now()
+        heure = datetime.now().strftime('%H:%M:%S')
+        ok    = step_backup_datalake(config)
+        duree = (datetime.now() - t0).total_seconds()
+
+        if ok:
+            rapport_etapes['backup'] = {
+                'statut': 'OK', 'nb_lignes': 0,
+                'heure': heure, 'duree_sec': duree,
+            }
         else:
             success = False
+            rapport_etapes['backup'] = {
+                'statut': 'ERREUR', 'nb_lignes': 0,
+                'heure': heure, 'duree_sec': duree,
+            }
+            send_error_email(
+                etape='Backup BACPAC',
+                table='ADLS Gen2 / raw/backups/',
+                erreur='Export BACPAC vers le Data Lake a echoue. '
+                       'Verifiez les logs backup_to_datalake.',
+                heure=heure,
+                rapport_partiel=rapport_details,
+                smtp_config=smtp_config,
+            )
 
-    # Resume
+    # ----------------------------------------------------------------
+    # Email de succes global si aucune erreur
+    # ----------------------------------------------------------------
+    if success:
+        rapport_etapes['details'] = rapport_details
+        send_success_email(rapport_etapes, smtp_config=smtp_config)
+
+    # ----------------------------------------------------------------
+    # Resume console
+    # ----------------------------------------------------------------
+    steps_run = len(rapport_etapes) - (1 if 'details' in rapport_etapes else 0)
+    steps_ok  = sum(
+        1 for k, v in rapport_etapes.items()
+        if k != 'details' and v.get('statut') == 'OK'
+    )
+
     print("\n" + "=" * 60)
     print("RESUME DU PIPELINE ETL")
     print("=" * 60)
-    print(f"Etapes executees: {steps_run}")
-    print(f"Etapes reussies:  {steps_ok}")
-    print(f"Statut:           {'SUCCES' if success else 'ECHEC'}")
+    print(f"Etapes executees : {steps_run}")
+    print(f"Etapes reussies  : {steps_ok}")
+    print(f"Statut           : {'SUCCES' if success else 'ECHEC'}")
     print("=" * 60)
 
     logger.info(f"Pipeline termine: {steps_ok}/{steps_run} etapes reussies "

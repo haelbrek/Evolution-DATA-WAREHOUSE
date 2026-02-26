@@ -66,6 +66,10 @@ resource "azurerm_storage_blob" "uploaded" {
   type                   = "Block"
   source                 = "${path.module}/${var.upload_source_dir}/${each.value}"
   content_md5            = filemd5("${path.module}/${var.upload_source_dir}/${each.value}")
+
+  lifecycle {
+    ignore_changes = [parallelism, size, source, content_md5]
+  }
 }
 
 resource "null_resource" "run_fetch_communes" {
@@ -228,6 +232,48 @@ resource "azurerm_mssql_firewall_rule" "sql" {
   server_id           = azurerm_mssql_server.sql.id
   start_ip_address    = each.value.start_ip
   end_ip_address      = each.value.end_ip
+}
+
+############################################
+# Log Analytics Workspace (Auditing SQL)
+############################################
+
+resource "azurerm_log_analytics_workspace" "law" {
+  name                = "law-elbrek-prod"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = azurerm_resource_group.rg.location
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+
+  tags = {
+    env     = "demo"
+    purpose = "auditing-sql"
+  }
+}
+
+# Auditing au niveau serveur -> capture toutes les connexions et requetes
+resource "azurerm_mssql_server_extended_auditing_policy" "sql_audit" {
+  server_id                               = azurerm_mssql_server.sql.id
+  log_monitoring_enabled                  = true
+  storage_endpoint                        = null
+  retention_in_days                       = 0
+
+  depends_on = [azurerm_log_analytics_workspace.law]
+}
+
+# Envoi des logs SQL vers Log Analytics
+resource "azurerm_monitor_diagnostic_setting" "sql_diag" {
+  name                       = "diag-sql-connexions"
+  target_resource_id         = azurerm_mssql_database.sql.id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
+
+  enabled_log { category = "SQLSecurityAuditEvents" }  # Connexions + auth
+  enabled_log { category = "SQLInsights" }              # Performances
+
+  metric {
+    category = "Basic"
+    enabled  = false
+  }
 }
 
 ############################################

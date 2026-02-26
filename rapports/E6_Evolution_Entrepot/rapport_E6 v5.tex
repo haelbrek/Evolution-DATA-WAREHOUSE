@@ -1,0 +1,1930 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% RAPPORT E6 - EVOLUTION D'UN ENTREPOT DE DONNEES
+% Projet Data Engineering - Region Hauts-de-France
+% Auteur: Hamza Elbrek
+% Date: Fevrier 2026
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[12pt,a4paper]{article}
+
+% ===================== PACKAGES =====================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\usepackage{fontspec}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage[table]{xcolor}
+\usepackage{float}
+\usepackage{placeins}
+\usepackage{enumitem}
+\usepackage{etoolbox}
+\usepackage{caption}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows, positioning, fit}
+
+\floatplacement{table}{H}
+\floatplacement{figure}{H}
+\AtEndEnvironment{figure}{\FloatBarrier}
+
+% ===================== COULEURS =====================
+\definecolor{azure}{RGB}{0, 127, 255}
+\definecolor{darkblue}{RGB}{0, 51, 102}
+\definecolor{codebg}{RGB}{245, 245, 245}
+\definecolor{codegreen}{RGB}{0, 128, 0}
+\definecolor{codegray}{RGB}{128, 128, 128}
+\definecolor{warnorange}{RGB}{230, 126, 34}
+\definecolor{successgreen}{RGB}{39, 174, 96}
+
+% ===================== HYPERREF =====================
+\hypersetup{
+    colorlinks=true,
+    linkcolor=darkblue,
+    urlcolor=azure,
+    citecolor=darkblue,
+    pdftitle={Rapport E6 - Evolution d'un Entrepot de Donnees},
+    pdfauthor={Hamza Elbrek}
+}
+
+% ===================== LISTINGS =====================
+\lstdefinelanguage{SQL}{
+    keywords={CREATE, TABLE, ALTER, ADD, UPDATE, SET, INSERT, INTO, SELECT,
+      FROM, WHERE, JOIN, LEFT, INNER, ON, AS, BEGIN, END, IF, ELSE, WHEN,
+      THEN, CASE, AND, OR, NOT, NULL, DEFAULT, PRIMARY, KEY, FOREIGN,
+      REFERENCES, INDEX, VIEW, PROCEDURE, EXEC, DECLARE, VARCHAR, INT,
+      DATETIME, BIT, NVARCHAR, FLOAT, GETDATE, EXISTS, MERGE, USING,
+      MATCHED, TARGET, SOURCE, OUTPUT, GO, SCHEMA, GRANT, REVOKE, ROLE,
+      BACKUP, DATABASE, TO, DISK, WITH, DIFFERENTIAL, LOG, RESTORE,
+      COLUMNSTORE, CLUSTERED, NONCLUSTERED, STATISTICS, IDENTITY, CAST,
+      FORMAT, COMPRESSION, NAME, STATS, FILEGROUP, VALUES, COUNT, SUM,
+      AVG, GROUP, BY, ORDER, DESC, TOP, ISNULL},
+    sensitive=false,
+    morecomment=[l]{--},
+    morecomment=[s]{/*}{*/},
+    morestring=[b]',
+}
+
+\lstdefinelanguage{Python}{
+    keywords={def, class, import, from, return, if, elif, else, for, while,
+      try, except, finally, with, as, pass, break, continue, and, or, not,
+      in, is, True, False, None, self, lambda, yield, raise, assert},
+    sensitive=true,
+    morecomment=[l]{\#},
+    morestring=[b]",
+    morestring=[b]',
+}
+
+\lstset{
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    captionpos=b,
+    commentstyle=\color{codegreen}\itshape,
+    keywordstyle=\color{azure}\bfseries,
+    stringstyle=\color{codegray},
+    frame=single,
+    framerule=0pt,
+    xleftmargin=0.5cm,
+    xrightmargin=0.5cm,
+    numbers=left,
+    numberstyle=\tiny\color{codegray},
+    numbersep=8pt,
+    showstringspaces=false,
+    tabsize=4
+}
+
+% ===================== EN-TETE / PIED =====================
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% ===================== COMMANDES PERSONNALISEES =====================
+\newcommand{\definition}[2]{%
+    \begin{center}
+    \fcolorbox{darkblue}{blue!5}{%
+        \begin{minipage}{0.92\textwidth}
+            \vspace{0.3cm}
+            \textbf{\textcolor{darkblue}{\large Definition : #1}}\\[0.3cm]
+            #2
+            \vspace{0.3cm}
+        \end{minipage}
+    }
+    \end{center}
+    \vspace{0.3cm}
+}
+
+\newcommand{\explicationtechnique}[2]{%
+    \begin{center}
+    \fcolorbox{codegreen}{green!3}{%
+        \begin{minipage}{0.92\textwidth}
+            \vspace{0.3cm}
+            \textbf{\textcolor{codegreen}{Explication technique : #1}}\\[0.3cm]
+            #2
+            \vspace{0.3cm}
+        \end{minipage}
+    }
+    \end{center}
+    \vspace{0.3cm}
+}
+
+\newcommand{\pointimportant}[1]{%
+    \begin{center}
+    \fcolorbox{warnorange}{orange!5}{%
+        \begin{minipage}{0.92\textwidth}
+            \vspace{0.2cm}
+            \textbf{\textcolor{warnorange}{Point important :}} #1
+            \vspace{0.2cm}
+        \end{minipage}
+    }
+    \end{center}
+    \vspace{0.3cm}
+}
+
+% ===================== DEBUT DU DOCUMENT =====================
+\begin{document}
+
+% ===================== PAGE DE TITRE =====================
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+
+    {\Huge\bfseries Rapport Professionnel E6\par}
+    \vspace{0.5cm}
+    {\LARGE Evolution d'un Entrepot de Donnees\par}
+
+    \vspace{1.5cm}
+
+    {\large Projet Data Engineering\par}
+    {\large Analyse Territoriale -- Region Hauts-de-France\par}
+
+    \vspace{2cm}
+
+    {\Large\bfseries Competences evaluees :\par}
+    \vspace{0.5cm}
+    \begin{tabular}{lp{10cm}}
+        \textbf{C16} & Gerer l'entrepot de donnees a l'aide des outils d'administration et de supervision dans le respect du RGPD, afin de garantir les bons acces, l'integration des evolutions structurelles et son maintien en condition operationnelle dans le temps. \\[0.3cm]
+        \textbf{C17} & Implementer des variations dans les dimensions de l'entrepot de donnees en appliquant la methode adaptee en fonction du type de changement demande afin d'historiser les evolutions de l'activite de l'organisation et maintenir ainsi une bonne capacite d'analyse. \\
+    \end{tabular}
+
+    \vfill
+
+    {\large
+    \begin{tabular}{rl}
+        \textbf{Auteur :} & Hamza Elbrek \\
+        \textbf{Formation :} & Data Engineer \\
+        \textbf{Date :} & Fevrier 2026 \\
+    \end{tabular}
+    \par}
+
+\end{titlepage}
+
+% ===================== TABLE DES MATIERES =====================
+\newpage
+\tableofcontents
+\newpage
+
+
+%=================================================================
+%                     INTRODUCTION
+%=================================================================
+\section{Introduction}
+
+Le projet E5 avait jete les bases d'un entrepot de donnees (Data Warehouse) centralisant les donnees territoriales publiques de la region \textbf{Hauts-de-France} : schema en etoile deploye sur \textbf{Azure SQL}, six dimensions, sept tables de faits, pipelines ETL Python et infrastructure provisionnee via \textbf{Terraform}. Le projet E6 reprend cet entrepot et le fait evoluer en \textbf{systeme effectif en conditions reelles} : mise en place d'une methodologie de maintenance, journalisation et monitoring, strategie de sauvegarde, integration de nouvelles sources de donnees, gestion des acces, et implementation des variations de dimensions (Slowly Changing Dimensions) pour historiser les changements au fil du temps.
+
+Pour ancrer le projet dans un contexte metier realiste, un \textbf{reseau d'agences bancaires fictif} a ete genere a partir du referentiel geographique de l'entrepot. En effet, les donnees reelles des employes d'une banque constituent des \textbf{donnees personnelles sensibles} (RGPD) qu'il est impossible d'importer sur une plateforme cloud Azure dans ce cadre. Les cent une agences ont donc ete positionnees sur les communes de la region dont la population depasse dix mille habitants, et un effectif fictif mais realiste d'environ cinq cent sept employes --- directeur regional, directeurs de departement, directeurs d'agence et collaborateurs --- a ete genere pour simuler la hierarchie d'un reseau bancaire regional.
+
+Ce referentiel d'employes est le fondement du dispositif de \textbf{securite des acces} mis en oeuvre dans E6 : quatre roles orientes metier et une politique Row-Level Security (RLS) sur \texttt{dwh.dim\_geographie} qui restreint automatiquement la vision des donnees de chaque consultant a son perimetre departemental. Ce rapport documente l'ensemble de ces evolutions et met a jour les modeles logique et physique de l'entrepot.
+
+
+%=================================================================
+%        SECTION 2 : METHODOLOGIE DE MAINTENANCE (ITIL)
+%=================================================================
+\newpage
+\section{Methodologie et outillage de maintenance}
+
+\subsection{Gestion des incidents}
+
+Tout incident est initie par la reception d'un message sur la \textbf{boite mail generique Outlook} de l'equipe data. Des la reception, un ticket est cree et le processus ci-dessous est applique.
+
+\begin{enumerate}[leftmargin=*, label=\textbf{\arabic*.}]
+
+    \item \textbf{Creation du ticket d'incident}
+
+    Des qu'un email est recu sur la boite generique de l'equipe, un ticket est ouvert avec les informations suivantes : date de reception, description de la demande, expediteur, impact presenti. Aucune demande ne doit rester sans ticket.
+
+    \item \textbf{Prise en charge}
+
+    A reception du ticket, deux cas sont envisages :
+    \begin{itemize}[leftmargin=2em]
+        \item \textbf{Un membre de l'equipe est disponible} $\rightarrow$ il s'attribue l'incident spontanement et s'en occupe.
+        \item \textbf{Aucun membre n'est disponible} $\rightarrow$ le \textbf{manager designe} la personne responsable du traitement.
+    \end{itemize}
+
+    \item \textbf{Classification et priorisation (avec le manager)}
+
+    Le manager et le responsable designe determinent ensemble la priorite de la demande selon la matrice Impact $\times$ Urgence (cf. section~\ref{sec:priorisation}) : \textbf{P1 Critique}, \textbf{P2 Haute}, \textbf{P3 Moyenne} ou \textbf{P4 Basse}. La priorite conditionne le delai de traitement attendu.
+
+    \item \textbf{Accuse de reception vers le metier}
+
+    La personne en charge contacte le \textbf{demandeur ou le referent metier} pour :
+    \begin{itemize}[leftmargin=2em]
+        \item confirmer que la demande est bien prise en compte,
+        \item communiquer la priorite attribuee et une estimation du delai de resolution.
+    \end{itemize}
+
+    \item \textbf{Traitement et diagnostic}
+
+    Investigation du probleme : consultation des logs ETL (\texttt{dwh.log\_etl}), analyse de la vue \texttt{analytics.v\_monitoring\_alertes}, verification des droits d'acces, identification du composant defaillant. Un journal de bord du diagnostic est maintenu dans le ticket.
+
+    \item \textbf{Resolution}
+
+    Application du correctif adapte a la nature de l'incident : relance ETL, correction de donnees, ajustement de configuration, mise a jour des droits RLS, etc. La solution est testee et validee avant cloture.
+
+    \item \textbf{Notification de cloture au demandeur}
+
+    La \textbf{personne qui a ouvert l'incident} est informee de la resolution par retour sur le fil mail ou via le ticket. La notification inclut : la cause identifiee, la solution appliquee et la date de cloture.
+
+    \item \textbf{Suivi post-incident et mise en backlog}
+
+    Si l'incident revele un besoin d'evolution ou un risque recurrent, une tache est ajoutee au \textbf{backlog de l'equipe} en respectant la priorisation definie. Les incidents repetitifs font l'objet d'une analyse de cause racine pour eviter les recidives.
+
+\end{enumerate}
+
+\begin{center}
+\small
+\textit{Flux simplifie : Mail recu $\rightarrow$ Ticket cree $\rightarrow$ Prise en charge $\rightarrow$ Priorite definie $\rightarrow$ Accuse metier $\rightarrow$ Diagnostic $\rightarrow$ Resolution $\rightarrow$ Notification $\rightarrow$ Backlog}
+\end{center}
+
+\subsection{Matrice de priorisation}
+\label{sec:priorisation}
+
+La priorisation des incidents et des demandes de changement repose sur deux criteres : l'\textbf{impact} (combien d'utilisateurs ou de processus sont affectes) et l'\textbf{urgence} (a quelle vitesse le service doit etre retabli).
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|c|c|}
+\hline
+\textbf{Impact / Urgence} & \textbf{Haute} & \textbf{Moyenne} & \textbf{Basse} \\
+\hline
+\textbf{Eleve} (tous les utilisateurs) & \cellcolor{red!30}P1 -- Critique & \cellcolor{orange!30}P2 -- Haute & \cellcolor{yellow!30}P3 -- Moyenne \\
+\hline
+\textbf{Moyen} (un service/equipe) & \cellcolor{orange!30}P2 -- Haute & \cellcolor{yellow!30}P3 -- Moyenne & \cellcolor{green!20}P4 -- Basse \\
+\hline
+\textbf{Faible} (un utilisateur) & \cellcolor{yellow!30}P3 -- Moyenne & \cellcolor{green!20}P4 -- Basse & \cellcolor{green!20}P4 -- Basse \\
+\hline
+\end{tabular}
+\caption{Matrice de priorisation Impact $\times$ Urgence}
+\end{table}
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{P1 -- Critique} : Base de donnees inaccessible, perte de donnees. Resolution immediate (< 1h).
+    \item \textbf{P2 -- Haute} : ETL en echec, datamart non rafraichi. Resolution dans la journee (< 8h).
+    \item \textbf{P3 -- Moyenne} : Performance degradee, acces manquant pour un utilisateur. Resolution sous 48h.
+    \item \textbf{P4 -- Basse} : Demande d'evolution, amelioration cosmetique. Planification dans le sprint suivant.
+\end{itemize}
+
+%=================================================================
+%     SECTION 3 : JOURNALISATION DES ALERTES ET ERREURS
+%=================================================================
+\section{Journalisation des alertes et des erreurs}
+
+\subsection{Architecture de journalisation mise en place}
+
+La journalisation est le processus d'enregistrement chronologique des evenements qui se produisent dans un systeme informatiqu. Notre systeme de journalisation opere a deux niveaux complementaires :
+
+\subsubsection{Journalisation applicative (Python)}
+
+Les scripts ETL utilisent le module \texttt{logging} de Python pour produire des logs structures :
+
+
+\medskip
+\noindent\colorbox{codebg}{\parbox{\dimexpr\textwidth-2\fboxsep\relax}{\small\color{darkblue}\textbf{Code A.1} --- \textit{Configuration du logging dans les ETL}\hfill $\Rightarrow$ voir Annexe~\ref{lst:annex01}, p.~\pageref{lst:annex01}}}
+\medskip
+
+
+
+\subsubsection{Journalisation en base de donnees (SQL)}
+
+En complement des logs applicatifs, une table de journalisation SQL enregistre chaque etape de l'ETL directement dans l'entrepot :
+
+\begin{lstlisting}[language=SQL, caption={Table de journalisation ETL}]
+CREATE TABLE dwh.log_etl (
+    log_id          INT IDENTITY(1,1) PRIMARY KEY,
+    date_execution  DATETIME DEFAULT GETDATE(),
+    etape           NVARCHAR(100),   -- 'load_dimensions', 'load_facts'...
+    table_cible     NVARCHAR(100),   -- 'dwh.dim_temps', 'dwh.fait_revenus'
+    statut          NVARCHAR(20),    -- 'DEBUT', 'SUCCES', 'ERREUR', 'WARNING'
+    nb_lignes       INT DEFAULT 0,
+    duree_secondes  FLOAT DEFAULT 0,
+    message         NVARCHAR(500),
+    utilisateur     NVARCHAR(100) DEFAULT SYSTEM_USER
+);
+\end{lstlisting}
+
+\pointimportant{La double journalisation (fichier Python + table SQL) assure la tracabilite meme si l'un des deux systemes est indisponible. Les logs Python capturent les erreurs de connexion a la base, tandis que les logs SQL offrent une vue requetable pour les tableaux de bord de supervision.}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.65\textwidth]{captures/azure_log_etl.png}
+\caption{Contenu de \texttt{dwh.log\_etl} -- Historique des 20 derniers evenements ETL (etape, statut, duree, nombre de lignes)}
+\end{figure}
+
+\subsection{Fonction Python de journalisation en base}
+
+
+\medskip
+\noindent\colorbox{codebg}{\parbox{\dimexpr\textwidth-2\fboxsep\relax}{\small\color{darkblue}\textbf{Code A.2} --- \textit{Fonction log\_etl\_db() dans les scripts ETL}\hfill $\Rightarrow$ voir Annexe~\ref{lst:annex02}, p.~\pageref{lst:annex02}}}
+\medskip
+
+
+\subsection{Vue de monitoring des alertes}
+
+Une vue analytique permet de superviser les alertes et erreurs depuis un outil BI :
+
+\begin{lstlisting}[language=SQL, caption={Vue de monitoring pour la supervision}]
+CREATE VIEW analytics.v_monitoring_alertes AS
+SELECT
+    CAST(date_execution AS DATE) AS jour,
+    etape,
+    statut,
+    COUNT(*) AS nb_evenements,
+    SUM(CASE WHEN statut = 'ERREUR' THEN 1 ELSE 0 END) AS nb_erreurs,
+    AVG(duree_secondes) AS duree_moyenne_sec
+FROM dwh.log_etl
+GROUP BY CAST(date_execution AS DATE), etape, statut;
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.65\textwidth]{captures/azure_log_erreurs.png}
+\caption{Contenu de \texttt{dwh.log\_erreurs} -- Historique des 20 dernieres erreurs detectees durant les executions ETL}
+\end{figure}
+
+\subsection{Notifications email automatiques du pipeline ETL}
+
+En complement de la journalisation en base, un module de notification email (\texttt{etl\_notifier.py}) envoie automatiquement un rapport a la fin de chaque execution du pipeline ETL, qu'elle soit reussie ou en erreur.
+
+\subsubsection{Configuration}
+
+La configuration SMTP est stockee dans \texttt{terraform.tfvars} pour centraliser tous les parametres du projet. Les variables d'environnement ont priorite si elles sont definies :
+
+\begin{lstlisting}[caption={Configuration SMTP dans terraform.tfvars}]
+# E6 - Notifications email ETL
+etl_smtp_host     = "smtp.gmail.com"
+etl_smtp_port     = "587"
+etl_smtp_user     = "moncompte@gmail.com"
+etl_smtp_password = "xxxx xxxx xxxx xxxx"   # App Password Gmail
+etl_notify_email  = "destinataire@example.com"
+\end{lstlisting}
+
+\pointimportant{Pour Gmail, il faut generer un \textbf{App Password} dans Securite $\to$ Mots de passe des applications (apres activation de la verification en 2 etapes). Ce mot de passe a 16 caracteres remplace le mot de passe Google dans la configuration ETL.}
+
+\subsubsection{Email de succes -- fin de pipeline}
+
+A la fin d'un pipeline complet sans erreur, l'orchestrateur (\texttt{run\_etl.py}) appelle \texttt{send\_success\_email()} qui envoie un rapport HTML structure :
+
+\begin{lstlisting}[language=Python, caption={Declenchement de la notification dans run\_etl.py}]
+# En cas de succes global du pipeline
+if success:
+    rapport_etapes['details'] = rapport_details
+    send_success_email(rapport_etapes, smtp_config=smtp_config)
+\end{lstlisting}
+
+L'email de succes contient deux tableaux :
+\begin{itemize}
+    \item \textbf{Recapitulatif des etapes} : statut (OK/ERREUR), nombre de lignes et duree pour chacune des 5 etapes (Staging, Dimensions, Faits, Refresh, Backup)
+    \item \textbf{Detail par table} : statut (OK, SKIP, IGNORE, ERREUR), heure et duree pour chaque table chargee (dimensions + faits)
+\end{itemize}
+
+\subsubsection{Email d'alerte -- erreur en cours de pipeline}
+
+Des qu'une erreur est detectee sur une table ou une etape, l'orchestrateur envoie immediatement un email d'alerte sans attendre la fin du pipeline :
+
+\begin{lstlisting}[language=Python, caption={Envoi d'alerte en cas d'erreur ETL (run\_etl.py)}]
+send_error_email(
+    etape='Faits',
+    table='dwh.fait_revenus',
+    erreur="KeyError: colonne 'obs_value' introuvable",
+    heure='14:32:18',
+    rapport_partiel={   # Tables deja traitees avant l'erreur
+        'dwh.fait_population': {'statut': 'OK', 'nb_lignes': 45},
+        'dwh.fait_entreprises': {'statut': 'SKIP', 'nb_lignes': 0},
+    },
+    smtp_config=smtp_config,
+)
+\end{lstlisting}
+
+L'email d'alerte contient :
+\begin{itemize}
+    \item Un bloc rouge avec : l'etape, la table en erreur, l'heure et le message d'erreur complet
+    \item Un tableau des tables deja traitees avant l'erreur (avec leurs statuts)
+\end{itemize}
+
+\subsubsection{Statuts des tables dans les emails}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Statut} & \textbf{Icone} & \textbf{Signification} \\
+\hline
+OK     & $\surd$ & Table chargee avec succes \\
+\hline
+SKIP   & $\to$      & Table ignoree (deja a jour, pas de nouvelles donnees) \\
+\hline
+IGNORE & $\to$      & Table ignoree (table staging source manquante) \\
+\hline
+ERREUR & $\times$   & Erreur lors du chargement \\
+\hline
+\end{tabular}
+\caption{Statuts des tables dans les emails de notification ETL}
+\end{table}
+
+\explicationtechnique{Architecture de notification}{%
+Le module \texttt{etl\_notifier.py} utilise uniquement la bibliotheque standard Python (\texttt{smtplib}, \texttt{email.mime}) -- aucune dependance externe necessaire. La connexion SMTP est etablie en \textbf{TLS} (port 587) avec \texttt{STARTTLS}. Si la configuration SMTP est absente ou incomplete, les notifications sont simplement ignorees (log \texttt{WARNING}) sans bloquer le pipeline.
+}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.65\textwidth]{captures/Notifications email automatiques du pipeline ETL.png}
+\caption{Exemple de notification email automatique -- Rapport de fin de pipeline ETL (succes ou erreur)}
+\end{figure}
+
+%=================================================================
+%     SECTION 4 : STRATEGIE DE BACKUP
+%=================================================================
+
+\section{Strategie de sauvegarde et restauration}
+
+\subsection{Niveau 1 : Sauvegardes automatiques Azure (PITR)}
+
+Azure SQL Database effectue automatiquement des sauvegardes, sans aucune intervention de notre part. Ce mecanisme, appele \textbf{PITR} (Point-In-Time Restore), constitue le premier niveau de notre strategie.
+
+La politique de retention est definie dans notre infrastructure Terraform :
+
+\begin{lstlisting}[caption={Configuration Terraform de la retention des sauvegardes (main.tf)}]
+resource "azurerm_mssql_database" "sql" {
+  # ...
+  short_term_retention_policy {
+    retention_days           = 14    # PITR sur 14 jours
+    backup_interval_in_hours = 12    # Differentiel toutes les 12h
+  }
+
+  long_term_retention_policy {
+    weekly_retention  = "P4W"    # 4 semaines
+    monthly_retention = "P12M"   # 12 mois
+    yearly_retention  = "P3Y"    # 3 ans
+    week_of_year      = 1
+  }
+}
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.65\textwidth]{captures/azure_backup_config.png}
+\caption{Configuration des sauvegardes dans le portail Azure -- Politique PITR (14 jours) et retention long terme (4 semaines, 12 mois, 3 ans)}
+\end{figure}
+
+\subsection{Niveau 2 : Recuperation et export BACPAC vers le Data Lake}
+
+Les sauvegardes automatiques Azure sont gerees par la plateforme et restent dans l'ecosysteme Azure. Pour disposer d'une copie \textbf{independante} et \textbf{portable} de notre base, nous ajoutons un second niveau : apres chaque execution de l'ETL, un script Python recupere l'etat de la base et l'exporte en fichier \texttt{.bacpac} horodate vers notre Data Lake ADLS Gen2.
+
+\medskip
+
+Le principe est le suivant :
+\begin{enumerate}
+    \item Azure realise automatiquement ses backups (complet + differentiel + logs de transactions)
+    \item Notre script \texttt{backup\_to\_datalake.py}, integre comme \textbf{etape 5 du pipeline ETL}, exporte la base via \texttt{az sql db export} vers le Data Lake
+    \item Le fichier \texttt{.bacpac} obtenu est stocke dans le container \texttt{raw/backups/} avec un horodatage
+    \item Ce fichier peut etre utilise a tout moment pour restaurer la base via \texttt{az sql db import}
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.65\textwidth]{captures/azure_datalake_bacpac.png}
+\caption{Fichiers \texttt{.bacpac} stockes dans le Data Lake -- Container \texttt{raw/backups/} avec horodatage}
+\end{figure}
+
+\medskip
+\noindent\colorbox{codebg}{\parbox{\dimexpr\textwidth-2\fboxsep\relax}{\small\color{darkblue}\textbf{Code A.3} --- \textit{Flux de la sauvegarde}\hfill $\Rightarrow$ voir Annexe~\ref{lst:annex03}, p.~\pageref{lst:annex03}}}
+\medskip
+
+
+\subsubsection{Script d'export BACPAC}
+
+
+\medskip
+\noindent\colorbox{codebg}{\parbox{\dimexpr\textwidth-2\fboxsep\relax}{\small\color{darkblue}\textbf{Code A.4} --- \textit{Export BACPAC vers le Data Lake (backup\_to\_datalake.py)}\hfill $\Rightarrow$ voir Annexe~\ref{lst:annex04}, p.~\pageref{lst:annex04}}}
+\medskip
+
+
+\subsubsection{Nettoyage automatique des anciens backups}
+
+Le script gere egalement la suppression des fichiers \texttt{.bacpac} de plus de 30 jours (configurable) pour eviter l'accumulation dans le Data Lake :
+
+
+\medskip
+\noindent\colorbox{codebg}{\parbox{\dimexpr\textwidth-2\fboxsep\relax}{\small\color{darkblue}\textbf{Code A.5} --- \textit{Nettoyage automatique des anciens backups}\hfill $\Rightarrow$ voir Annexe~\ref{lst:annex05}, p.~\pageref{lst:annex05}}}
+\medskip
+
+
+\subsection{Restauration de la base de donnees}
+
+En cas de besoin (corruption, perte de donnees, incident), deux methodes de restauration sont disponibles selon la situation :
+
+\begin{itemize}
+    \item \textbf{Restauration Point-in-Time (PITR)} : Utilise les sauvegardes automatiques Azure pour restaurer la base a n'importe quel instant dans la fenetre de retention (14 jours). Methode la plus rapide, ideale pour les incidents recents.
+    \item \textbf{Import BACPAC depuis le Data Lake} : Recree la base a partir d'un fichier \texttt{.bacpac} exporte par notre pipeline ETL. Utile pour restaurer un etat au-dela de la fenetre PITR, ou pour migrer la base vers un autre serveur.
+\end{itemize}
+
+
+\medskip
+\noindent\colorbox{codebg}{\parbox{\dimexpr\textwidth-2\fboxsep\relax}{\small\color{darkblue}\textbf{Code A.6} --- \textit{Restauration via Azure CLI}\hfill $\Rightarrow$ voir Annexe~\ref{lst:annex06}, p.~\pageref{lst:annex06}}}
+\medskip
+
+
+\subsection{Monitoring des sauvegardes}
+
+Deux vues SQL permettent de surveiller l'etat des sauvegardes :
+
+\begin{itemize}
+    \item \texttt{analytics.v\_etat\_backup\_azure} : Interroge la DMV \texttt{sys.dm\_database\_backups} pour afficher les sauvegardes automatiques Azure (type, date, taille).
+    \item \texttt{analytics.v\_historique\_backups} : Filtre la table \texttt{dwh.log\_etl} pour afficher l'historique des exports BACPAC effectues par le pipeline ETL.
+\end{itemize}
+
+\begin{lstlisting}[language=SQL, caption={Vue de l'historique des exports BACPAC}]
+CREATE VIEW analytics.v_historique_backups AS
+SELECT
+    log_id, date_execution,
+    etape AS type_backup, statut, message,
+    duree_secondes, nb_lignes, utilisateur
+FROM dwh.log_etl
+WHERE etape IN ('BACKUP_BACPAC', 'RESTAURATION');
+\end{lstlisting}
+
+
+%=================================================================
+%     SECTION 5 : INTEGRATION DE NOUVELLES SOURCES
+%=================================================================
+
+\section{Integration de nouvelles sources de donnees}
+
+L'entrepot E5 ne chargeait que 4 tables de faits sur les 7 prevues. Pour E6, deux nouvelles sources CSV ont ete integrees : \texttt{EMPLOI\_CHOMAGE\_hauts\_de\_france.csv} alimentant \texttt{fait\_emploi}, et \texttt{Menage\_hauts\_de\_france.csv} alimentant \texttt{fait\_menages}. Le processus ETL suit un pattern uniforme : les donnees sont d'abord chargees depuis la zone de staging, les cles etrangeres sont resolues via les dimensions \texttt{dim\_temps} et \texttt{dim\_geographie}, les valeurs sont agregees par annee et departement, puis inserees dans la table de faits. Chaque chargement est trace dans le journal \texttt{log\_etl} en base de donnees.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.65\textwidth]{captures/azure_nouvelle_table.png}
+\caption{Donnees chargees dans \texttt{dwh.fait\_emploi} -- Exemple des 5 premieres lignes apres integration de la nouvelle source}
+\end{figure}
+
+%=================================================================
+%     SECTION 6 : GESTION DES ACCES (RBAC)
+%=================================================================
+
+\section{Gestion des acces et securite}
+
+\medskip
+
+La gestion des acces constitue un pilier fondamental de la gouvernance de l'entrepot de donnees. Cette section decrit l'evolution du dispositif de securite entre le projet initial (E5) et la version actuelle (E6), ainsi que les procedures operationnelles associees.
+
+% ----------------------------------------------------------------
+\subsection{Roles initiaux du projet E5}
+% ----------------------------------------------------------------
+
+Dans le projet initial E5, l'entrepot de donnees disposait de trois roles RBAC (\textit{Role-Based Access Control}) couvrant les grands profils d'utilisation :
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|l|X|l|}
+\hline
+\textbf{Role} & \textbf{Permissions} & \textbf{Utilisateurs types} \\
+\hline
+\texttt{role\_etl\_process} & Lecture/ecriture sur \texttt{stg} et \texttt{dwh}, lecture sur \texttt{dm} et \texttt{analytics} & Comptes de service ETL \\
+\hline
+\texttt{role\_analyst} & Lecture complete sur \texttt{dwh} (dimensions et faits), \texttt{dm} et \texttt{analytics}. Aucun acces au staging. & Data Analysts \\
+\hline
+\texttt{role\_dwh\_admin} & Controle total sur tous les schemas et objets & Administrateurs DBA \\
+\hline
+\end{tabularx}
+\caption{Roles RBAC du projet initial E5}
+\end{table}
+
+Ce dispositif repondait correctement aux besoins d'un entrepot centralise avec des profils generiques. Cependant, lors du passage en production avec les 519 collaborateurs repartis sur les 5 departements de la region Hauts-de-France, une \textbf{limite structurelle} est apparue : ces roles ne prenaient pas en compte les restrictions geographiques.
+
+En effet, un collaborateur de l'agence de Valenciennes (Nord, dept.~59) disposant du role \texttt{role\_analyst} avait techniquement acces aux donnees de toute la region --- y compris les departements de l'Oise (60) et de la Somme (80) dans lesquels il n'a aucune responsabilite. Cette situation est incompatible avec le principe RGPD de \textit{minimisation des acces}.
+
+% ----------------------------------------------------------------
+\subsection{Refonte des roles lors de l'evolution E6}
+% ----------------------------------------------------------------
+
+Pour repondre a cette limite, l'evolution E6 a redesigne le dispositif de securite selon deux axes complementaires :
+
+\begin{enumerate}
+    \item \textbf{Refonte des roles RBAC} : suppression du role \texttt{role\_dwh\_admin}, scission du role \texttt{role\_analyst} en deux profils distincts, et ajout d'un role \texttt{role\_admin} avec permissions explicites.
+    \item \textbf{Introduction du RLS} (\textit{Row-Level Security}) : filtrage automatique des donnees par zone geographique pour les collaborateurs en agence.
+\end{enumerate}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|l|X|l|}
+\hline
+\textbf{Role} & \textbf{Permissions} & \textbf{Utilisateurs types} \\
+\hline
+\texttt{role\_admin} & Controle total (\texttt{CONTROL}) sur tous les schemas. Peut creer des tables, vues, procedures. & Administrateurs DBA \\
+\hline
+\texttt{role\_etl\_process} & Lecture/ecriture (\texttt{SELECT, INSERT, UPDATE, DELETE}) sur \texttt{stg} et \texttt{dwh}. Lecture seule sur \texttt{dm} et \texttt{analytics}. & Comptes de service ETL \\
+\hline
+\texttt{role\_analyst} & Lecture seule sur \texttt{dwh} (dimensions + faits), \texttt{dm} et \texttt{analytics}. Aucun acces au staging. & Data Analysts internes \\
+\hline
+\texttt{role\_consultant} & Lecture seule sur \texttt{dm} et \texttt{analytics} uniquement. \textbf{Acces filtre par departement via RLS} (voir section \ref{sec:rls}). & Collaborateurs agences \\
+\hline
+\end{tabularx}
+\caption{Roles RBAC refondus lors de l'evolution E6}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.55\textwidth]{captures/azure_rbac_roles.png}
+\caption{Roles de base de donnees crees dans Azure SQL -- Resultat de \texttt{SELECT name FROM sys.database\_principals WHERE type = 'R'}}
+\end{figure}
+
+% ----------------------------------------------------------------
+\subsection{Procedure d'integration d'un nouveau collaborateur}
+% ----------------------------------------------------------------
+
+Lorsqu'un nouveau collaborateur rejoint la structure, l'integration de ses acces a l'entrepot suit un processus en trois etapes selon son profil.
+
+\subsubsection*{Etape 1 --- Determiner le role approprie}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Profil} & \textbf{Role a attribuer} \\
+\hline
+Administrateur / DBA & \texttt{role\_admin} \\
+\hline
+Ingenieur ETL / pipeline de donnees & \texttt{role\_etl\_process} \\
+\hline
+Data Analyst (acces region entiere) & \texttt{role\_analyst} \\
+\hline
+Collaborateur en agence (acces departement) & \texttt{role\_consultant} \\
+\hline
+\end{tabularx}
+\caption{Correspondance profil metier / role SQL}
+\end{table}
+
+\subsubsection*{Etape 2 --- Creer l'utilisateur et attribuer le role}
+
+\begin{lstlisting}[language=SQL, caption={Creation d'un nouvel acces utilisateur dans Azure SQL}]
+-- Creer l'utilisateur avec mot de passe (Azure SQL Database)
+CREATE USER [prenom.nom] WITH PASSWORD = 'MotDePasseSecurise!';
+
+-- Attribuer le role correspondant au profil
+ALTER ROLE role_consultant ADD MEMBER [prenom.nom];
+
+\end{lstlisting}
+
+\subsubsection*{Etape 3 --- Configurer la zone geographique (si role\_consultant)}
+
+Pour un collaborateur en agence, il faut enregistrer son perimetre geographique dans la table \texttt{security.utilisateurs\_zones} afin que le RLS filtre correctement ses acces :
+
+\begin{lstlisting}[language=SQL, caption={Enregistrement de la zone geographique du collaborateur}]
+-- Acces restreint a un departement (ex : Nord - 59)
+INSERT INTO security.utilisateurs_zones (login_sql, departement_code)
+VALUES ('prenom.nom', '59');
+
+-- Acces region entiere (ex : directeur regional)
+INSERT INTO security.utilisateurs_zones (login_sql, departement_code)
+VALUES ('prenom.nom', NULL);
+\end{lstlisting}
+
+\explicationtechnique{Logique du filtre RLS}{%
+La fonction predicat \texttt{security.fn\_rls\_geographie} verifie la presence du login dans \texttt{utilisateurs\_zones}. Si le collaborateur n'y figure pas, il a acces a toutes les lignes (cas des roles \texttt{role\_admin}, \texttt{role\_analyst}, \texttt{role\_etl\_process}). S'il y figure avec un \texttt{departement\_code} non null, il ne voit que les donnees de ce departement. Avec \texttt{NULL}, il voit toute la region.
+}
+
+
+\subsection{Row-Level Security (RLS) pour les consultants}
+\label{sec:rls}
+
+\subsubsection{Architecture RLS mise en place}
+
+Le RLS s'applique sur la table \texttt{dwh.dim\_geographie} (qui contient le \texttt{departement\_code}). Puisque toutes les vues des schemas \texttt{dm} et \texttt{analytics} effectuent une jointure sur cette table, le filtre se propage automatiquement a toutes ces vues sans modification supplementaire.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.75\textwidth}{!}{%
+\begin{tikzpicture}[
+    table/.style={rectangle, draw=azure, fill=blue!5, text width=3.8cm, align=center, minimum height=0.9cm, font=\small},
+    policy/.style={rectangle, draw=successgreen, fill=green!5, text width=5cm, align=center, minimum height=0.9cm, font=\small},
+    arrow/.style={->, thick, darkblue},
+    rarrow/.style={->, thick, successgreen, dashed}
+]
+    \node[policy] (rls) {\textbf{RLS Policy}\\fn\_rls\_geographie\\(departement\_code)};
+    \node[table, above left=1.2cm and 2cm of rls] (geo) {dwh.dim\_geographie};
+    \node[table, below left=1cm and 2cm of rls] (uz) {security.utilisateurs\_zones\\(login\_sql, dept\_code)};
+    \node[table, above right=1.2cm and 2cm of rls] (dm) {dm.vm\_*\\analytics.v\_*};
+
+    \draw[rarrow] (rls) -- (geo) node[midway, above, sloped, font=\tiny] {FILTER PREDICATE};
+    \draw[arrow] (uz) -- (rls) node[midway, below, sloped, font=\tiny] {lookup};
+    \draw[arrow] (geo) -- (dm) node[midway, above, font=\tiny] {JOIN propagation};
+\end{tikzpicture}
+}% end resizebox
+\caption{Architecture RLS -- Filtre sur dim\_geographie, propagation aux datamarts}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.65\textwidth]{captures/RLS.png}
+\caption{Verification du filtre RLS en base -- Un consultant du departement 59 ne voit que les donnees de son perimetre}
+\end{figure}
+
+\subsubsection{Schema de securite et tables}
+
+Un schema \texttt{security} dedie contient les trois tables du dispositif RLS :
+
+
+\medskip
+\noindent\colorbox{codebg}{\parbox{\dimexpr\textwidth-2\fboxsep\relax}{\small\color{darkblue}\textbf{Code A.7} --- \textit{Tables du schema security (011\_security\_rls.sql)}\hfill $\Rightarrow$ voir Annexe~\ref{lst:annex07}, p.~\pageref{lst:annex07}}}
+\medskip
+
+
+\subsubsection{Hierarchie des employes}
+
+La structure hierarchique compte 4 niveaux pour les 5 departements de la region (02~Aisne, 59~Nord, 60~Oise, 62~Pas-de-Calais, 80~Somme) :
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|l|}
+\hline
+\textbf{Niveau} & \textbf{Effectif} & \textbf{Perimetre RLS} \\
+\hline
+\texttt{DIRECTEUR\_REGIONAL} & 1 & Region entiere (5 departements) \\
+\hline
+\texttt{DIRECTEUR\_DEPARTEMENT} & 5 & Leur departement \\
+\hline
+\texttt{DIRECTEUR\_AGENCE} & 101 & Departement de leur agence \\
+\hline
+\texttt{COLLABORATEUR} & 412 & Departement de leur agence \\
+\hline
+\multicolumn{2}{|l|}{\textbf{Total}} & \textbf{519 employes} \\
+\hline
+\end{tabular}
+\caption{Hierarchie des employes et perimetre d'acces RLS}
+\end{table}
+
+Les 101 agences correspondent aux communes de la region dont la population depasse 10~000 habitants (9 grandes agences $>$50~000 hab., 41 moyennes, 51 petites). Le script Python \texttt{analytics/etl/load\_security.py} genere automatiquement cette structure a partir du referentiel geographique \texttt{communes.json}.
+
+\subsubsection{Fonction predicat et politique de securite}
+
+
+\medskip
+\noindent\colorbox{codebg}{\parbox{\dimexpr\textwidth-2\fboxsep\relax}{\small\color{darkblue}\textbf{Code A.8} --- \textit{Fonction predicat RLS (011\_security\_rls.sql)}\hfill $\Rightarrow$ voir Annexe~\ref{lst:annex08}, p.~\pageref{lst:annex08}}}
+\medskip
+
+
+\explicationtechnique{Propagation automatique du filtre}{%
+Le predicat RLS est applique sur \texttt{dwh.dim\_geographie}. Toutes les vues \texttt{dm.*} et \texttt{analytics.*} joignent cette table via \texttt{geo\_id}. Lorsqu'un consultant execute une requete sur \texttt{dm.vm\_demographie\_departement}, SQL Server filtre d'abord les lignes de \texttt{dim\_geographie} selon son predicat, puis effectue la jointure avec les tables de faits. Le resultat est automatiquement restreint a ses departements autorises, sans modifier les vues ni les requetes.
+}
+
+\subsubsection{Script ETL de chargement du referentiel securite}
+
+Le script \texttt{analytics/etl/load\_security.py} permet de generer et charger les donnees de securite :
+
+\begin{lstlisting}[language=Python, caption={Utilisation de load\_security.py}]
+# Verification sans chargement en base
+python load_security.py --check
+
+# Chargement initial (ou rechargement complet)
+python load_security.py --reset --load
+
+# Resultat :
+# 101 agences  -> security.agences
+# 519 employes -> security.employes
+# 519 zones    -> security.utilisateurs_zones
+\end{lstlisting}
+
+%=================================================================
+%  SECTION 7 : PROCEDURES D'EVOLUTION ET DE SCALABILITE
+%=================================================================
+
+\section{Procedures d'evolution et de scalabilite}
+
+L'entrepot de donnees est concu pour evoluer sans interruption de service. Quatre procedures operationnelles encadrent les operations courantes d'administration :
+
+\begin{itemize}
+    \item \textbf{Procedure 1} : Creer un nouvel acces utilisateur
+    \item \textbf{Procedure 2} : Ajouter un nouveau datamart analytique
+    \item \textbf{Procedure 3} : Montee en charge (scalabilite)
+    \item \textbf{Procedure 4} : Ajouter une nouvelle source de donnees
+\end{itemize}
+
+Le detail complet de chaque procedure est documente en annexe :
+
+\medskip
+\noindent\colorbox{codebg}{\parbox{\dimexpr\textwidth-2\fboxsep\relax}{\small\color{darkblue}\textbf{Annexe B} --- \textit{Procedures d'exploitation et de scalabilite}\hfill $\Rightarrow$ voir Annexe~\ref{sec:annexe_procedures}, p.~\pageref{sec:annexe_procedures}}}
+\medskip
+
+
+%=================================================================
+%   SECTION 8 : VARIATIONS DE DIMENSIONS (SCD) -- C17
+%=================================================================
+
+\section{Variations de dimensions (Slowly Changing Dimensions)}
+
+\subsection{SCD Type 1 : Ecrasement (Overwrite)}
+
+\definition{SCD Type 1}{%
+Le Type 1 consiste a \textbf{ecraser purement et simplement l'ancienne valeur} par la nouvelle. L'historique est perdu. 
+}
+
+\textbf{Exemple :} Le libelle de la section NAF ``C'' est corrige de ``Industrie manufacturere'' (faute) a ``Industrie manufacturiere''.
+
+
+\medskip
+\noindent\colorbox{codebg}{\parbox{\dimexpr\textwidth-2\fboxsep\relax}{\small\color{darkblue}\textbf{Code A.10} --- \textit{Implementation SCD Type 1 -- Ecrasement}\hfill $\Rightarrow$ voir Annexe~\ref{lst:annex10}, p.~\pageref{lst:annex10}}}
+
+
+\subsection{SCD Type 2 : Historisation (Add New Row)}
+
+\definition{SCD Type 2}{%
+Le Type 2 est l'approche la plus riche : au lieu d'ecraser l'ancienne valeur, on \textbf{cree une nouvelle ligne} pour la nouvelle valeur et on \textbf{ferme l'ancienne ligne} en marquant sa date de fin. Chaque version de la dimension coexiste dans la table avec des colonnes de gestion :
+\begin{itemize}
+    \item \texttt{date\_debut\_validite} : Date a partir de laquelle cette version est valide
+    \item \texttt{date\_fin\_validite} : Date de fin de validite (NULL = version courante)
+    \item \texttt{est\_actif} : Booleen indiquant si c'est la version en vigueur
+    \item \texttt{version} : Numero de version incremental
+\end{itemize}
+}
+
+\textbf{Exemple :} La commune ``Noyelles-Godault'' (code 62617) fusionne avec ``Henin-Beaumont'' en 2026. On conserve l'historique des deux noms.
+
+\begin{lstlisting}[language=SQL, caption={Colonnes SCD Type 2 ajoutees a dim\_geographie}]
+-- Ajout des colonnes SCD Type 2 a dim_geographie
+ALTER TABLE dwh.dim_geographie ADD
+    date_debut_validite DATETIME DEFAULT '2010-01-01',
+    date_fin_validite   DATETIME NULL,  -- NULL = actif
+    est_actif           BIT DEFAULT 1,
+    version             INT DEFAULT 1;
+\end{lstlisting}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.65\textwidth]{captures/azure_scd_dim_geographie.png}
+\caption{Colonnes SCD Type 2 dans \texttt{dwh.dim\_geographie} -- Champs \texttt{est\_actif}, \texttt{version} et \texttt{date\_debut\_validite} pour l'historisation des communes}
+\end{figure}
+
+\noindent\colorbox{codebg}{\parbox{\dimexpr\textwidth-2\fboxsep\relax}{\small\color{darkblue}\textbf{Code A.11} --- \textit{Procedure SCD Type 2 -- Historisation}\hfill $\Rightarrow$ voir Annexe~\ref{lst:annex11}, p.~\pageref{lst:annex11}}}
+
+
+\subsection{SCD Type 3 : Colonne precedente (Add New Column)}
+
+\definition{SCD Type 3}{%
+Le Type 3 est un compromis entre le Type 1 et le Type 2 : on ajoute une \textbf{colonne supplementaire} pour stocker l'ancienne valeur, tout en mettant a jour la valeur courante. Cette approche ne conserve qu'\textbf{un seul niveau d'historique} (la valeur precedente).
+
+\begin{itemize}
+    \item \texttt{libelle\_actuel} : La valeur courante de l'attribut
+    \item \texttt{libelle\_precedent} : L'ancienne valeur (avant le dernier changement)
+    \item \texttt{date\_changement} : La date du dernier changement
+\end{itemize}
+
+}
+
+\textbf{Exemple :} La categorie PCS ``Cadres'' est renommee en ``Cadres et professions intellectuelles superieures''.
+
+\begin{lstlisting}[language=SQL, caption={Colonnes SCD Type 3 ajoutees a dim\_demographie}]
+-- Ajout des colonnes SCD Type 3 a dim_demographie
+ALTER TABLE dwh.dim_demographie ADD
+    ancien_libelle_pcs  NVARCHAR(200) NULL,
+    date_changement_pcs DATETIME NULL;
+\end{lstlisting}
+
+
+\medskip
+\noindent\colorbox{codebg}{\parbox{\dimexpr\textwidth-2\fboxsep\relax}{\small\color{darkblue}\textbf{Code A.12} --- \textit{Procedure SCD Type 3}\hfill $\Rightarrow$ voir Annexe~\ref{lst:annex12}, p.~\pageref{lst:annex12}}}
+\medskip
+
+
+
+%=================================================================
+%   SECTION 10 : DOCUMENTATION DES EVOLUTIONS ET MODELES MIS A JOUR
+%=================================================================
+
+\section{Documentation des evolutions et modeles mis a jour}
+
+% ----------------------------------------------------------------
+\subsection{Evolution des Architectures de Data Warehouse}
+% ----------------------------------------------------------------
+
+Le modele logique E6 s'articule desormais autour de \textbf{cinq schemas} avec des responsabilites clairement separees :
+
+\begin{figure}[H]
+\centering
+\resizebox{0.82\textwidth}{!}{%
+\begin{tikzpicture}[
+    schema/.style    ={rectangle, draw=darkblue, fill=darkblue!8,
+                       text width=3.8cm, align=center,
+                       minimum height=0.7cm, font=\small\bfseries},
+    table/.style     ={rectangle, draw=azure, fill=blue!5,
+                       text width=3.8cm, align=left,
+                       minimum height=0.5cm, font=\footnotesize},
+    tablenew/.style  ={rectangle, draw=successgreen, fill=green!5,
+                       text width=3.8cm, align=left,
+                       minimum height=0.5cm, font=\footnotesize},
+    security/.style  ={rectangle, draw=warnorange, fill=orange!6,
+                       text width=3.8cm, align=left,
+                       minimum height=0.5cm, font=\footnotesize},
+    arrow/.style     ={->, thick, darkblue},
+    arrowg/.style    ={->, thick, successgreen!70!black, dashed}
+]
+
+% ---- STG (haut gauche) ----
+\node[schema] (stg_h) at (-5.5, 6) {Schema \texttt{stg}};
+\node[table, below=0 of stg_h]  (stg1) {\texttt{stg\_population}};
+\node[table, below=0 of stg1]   (stg2) {\texttt{stg\_revenus}};
+\node[table, below=0 of stg2]   (stg3) {\texttt{stg\_entreprises}};
+\node[table, below=0 of stg3]   (stg4) {\texttt{...}};
+
+% ---- DWH Dimensions (centre haut) ----
+\node[schema] (dwh_dim_h) at (0, 6) {Schema \texttt{dwh} -- Dimensions};
+\node[table, below=0 of dwh_dim_h]  (d1) {\texttt{dim\_geographie} \textcolor{successgreen}{\small SCD2}};
+\node[table, below=0 of d1]         (d2) {\texttt{dim\_demographie} \textcolor{successgreen}{\small SCD3}};
+\node[table, below=0 of d2]         (d3) {\texttt{dim\_activite} \textcolor{successgreen}{\small SCD1}};
+\node[table, below=0 of d3]         (d4) {\texttt{dim\_temps}};
+\node[table, below=0 of d4]         (d5) {\texttt{dim\_geographie\_admin}};
+\node[table, below=0 of d5]         (d6) {\texttt{dim\_forme\_juridique}};
+
+% ---- DWH Faits (centre bas) ----
+\node[schema] (dwh_fait_h) at (0, -2.5) {Schema \texttt{dwh} -- Faits};
+\node[table,    below=0 of dwh_fait_h] (f1) {\texttt{fait\_population}};
+\node[table,    below=0 of f1]         (f2) {\texttt{fait\_revenus}};
+\node[table,    below=0 of f2]         (f3) {\texttt{fait\_entreprises}};
+\node[table,    below=0 of f3]         (f4) {\texttt{fait\_logement}};
+\node[table,    below=0 of f4]         (f5) {\texttt{fait\_chomage}};
+\node[tablenew, below=0 of f5]         (f6) {\texttt{fait\_emploi} \textcolor{successgreen}{\small [E6]}};
+\node[tablenew, below=0 of f6]         (f7) {\texttt{fait\_menages} \textcolor{successgreen}{\small [E6]}};
+\node[tablenew, below=0 of f7]         (fm) {\texttt{log\_etl / log\_erreurs} \textcolor{successgreen}{\small [E6]}};
+
+% ---- SECURITY (droite) ----
+\node[schema] (sec_h) at (5.5, 6) {Schema \texttt{security} \textcolor{warnorange}{\small [E6]}};
+\node[security, below=0 of sec_h] (s1) {\texttt{agences}};
+\node[security, below=0 of s1]    (s2) {\texttt{employes}};
+\node[security, below=0 of s2]    (s3) {\texttt{utilisateurs\_zones}};
+\node[security, below=0 of s3]    (s4) {\textit{fn\_rls\_geographie}};
+\node[security, below=0 of s4]    (s5) {\textit{v\_acces\_employes}};
+\node[security, below=0 of s5]    (s6) {\textit{v\_connexions\_actives}};
+
+% ---- DM + ANALYTICS (bas) ----
+\node[schema] (dm_h) at (-5.5,-2.5) {Schema \texttt{dm}};
+\node[table, below=0 of dm_h] (dm1) {\texttt{vm\_demographie\_dept}};
+\node[table, below=0 of dm1]  (dm2) {\texttt{vm\_entreprises\_dept}};
+\node[table, below=0 of dm2]  (dm3) {\texttt{vm\_revenus\_dept}};
+\node[table, below=0 of dm3]  (dm4) {\texttt{...}};
+
+\node[schema] (an_h) at (5.5,-2.5) {Schema \texttt{analytics} \textcolor{successgreen}{\small [+E6]}};
+\node[table,    below=0 of an_h] (an1) {\texttt{v\_tableau\_bord}};
+\node[tablenew, below=0 of an1]  (an2) {\texttt{v\_monitoring\_alertes}}; 
+\node[tablenew, below=0 of an2]  (an3) {\texttt{v\_historique\_backups}};
+\node[tablenew, below=0 of an3]  (an4) {\texttt{v\_monitoring\_alertes}};
+
+% ---- Fleches ----
+\draw[arrow]  (stg_h.east)    -- (dwh_dim_h.west);
+\draw[arrow]  (d6)     -- (dwh_fait_h);
+\draw[arrow]  (dwh_fait_h.west) -- (dm_h.east);
+\draw[arrow]  (dwh_fait_h.east) -- (an_h.west);
+\draw[arrowg] (s4.west)       -- (d1.east)
+    node[midway, above, font=\tiny, sloped] {RLS};
+
+\end{tikzpicture}
+}% end resizebox
+\caption{Modele logique E6 -- Vue globale des 5 schemas (vert = nouveau E6, orange = schema security)}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.65\textwidth]{captures/azure_datawarehouse_schema.png}
+\caption{Schemas et tables de l'entrepot dans Azure SQL -- Vue \texttt{INFORMATION\_SCHEMA.TABLES} listant tous les objets des schemas \texttt{stg}, \texttt{dwh}, \texttt{dm} et \texttt{analytics}}
+\end{figure}
+
+% ----------------------------------------------------------------
+\subsection{Nouveau modele logique (E6)}
+% ----------------------------------------------------------------
+
+Le schema en etoile complet de l'entrepot apres evolution E6 regroupe
+\textbf{6 dimensions} et \textbf{7 tables de faits} dans le schema \texttt{dwh}.
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    dim/.style  ={rectangle, draw=azure, fill=blue!7,
+                  text width=4.2cm, align=left,
+                  inner sep=4pt, font=\scriptsize},
+    dimnew/.style={rectangle, draw=successgreen, fill=green!7,
+                  text width=4.2cm, align=left,
+                  inner sep=4pt, font=\scriptsize},
+    fait/.style ={rectangle, draw=darkblue, fill=darkblue!10,
+                  text width=5cm, align=left,
+                  inner sep=4pt, font=\scriptsize\bfseries},
+    hdr/.style  ={font=\scriptsize\bfseries\color{white},
+                  fill=darkblue, draw=darkblue,
+                  text width=4.2cm, align=center, inner sep=3pt},
+    hdrf/.style ={font=\scriptsize\bfseries\color{white},
+                  fill=darkblue!80, draw=darkblue,
+                  text width=5cm, align=center, inner sep=3pt},
+    arrow/.style={->, thick, darkblue!70},
+    arrown/.style={->, thick, successgreen!80!black, dashed}
+]
+
+% ============================================================
+% DIMENSIONS (6)
+% ============================================================
+
+% -- dim_temps (haut centre) --
+\node[hdr]  (th)  at (0,  12)   {\texttt{dim\_temps}};
+\node[dim,  below=0 of th]      (t1) {\underline{PK temps\_id}};
+\node[dim,  below=0 of t1]      (t2) {annee INT};
+\node[dim,  below=0 of t2]      (t3) {trimestre INT};
+\node[dim,  below=0 of t3]      (t4) {mois INT};
+\node[dim,  below=0 of t4]      (t5) {libelle\_periode};
+
+% -- dim_geographie (gauche haut) --
+\node[hdr]  (gh)  at (-7.5, 7)  {\texttt{dim\_geographie} \textcolor{successgreen}{SCD2}};
+\node[dim,  below=0 of gh]      (g1) {\underline{PK geo\_id}};
+\node[dim,  below=0 of g1]      (g2) {commune\_code / commune\_nom};
+\node[dim,  below=0 of g2]      (g3) {departement\_code / nom};
+\node[dim,  below=0 of g3]      (g4) {region\_code / nom};
+\node[dim,  below=0 of g4]      (g5) {latitude, longitude};
+\node[dimnew,below=0 of g5]     (g6) {\textcolor{successgreen}{date\_debut\_validite}};
+\node[dimnew,below=0 of g6]     (g7) {\textcolor{successgreen}{date\_fin\_validite NULL}};
+\node[dimnew,below=0 of g7]     (g8) {\textcolor{successgreen}{est\_actif BIT}};
+\node[dimnew,below=0 of g8]     (g9) {\textcolor{successgreen}{version INT}};
+
+% -- dim_demographie (gauche bas) --
+\node[hdr]  (dh)  at (-7.5, 0)  {\texttt{dim\_demographie} \textcolor{successgreen}{SCD3}};
+\node[dim,  below=0 of dh]      (d1) {\underline{PK demo\_id}};
+\node[dim,  below=0 of d1]      (d2) {sexe\_code / libelle};
+\node[dim,  below=0 of d2]      (d3) {age\_code / libelle / min / max};
+\node[dim,  below=0 of d3]      (d4) {pcs\_code / libelle};
+\node[dimnew,below=0 of d4]     (d5) {\textcolor{successgreen}{ancien\_pcs\_libelle}};
+\node[dimnew,below=0 of d5]     (d6) {\textcolor{successgreen}{date\_changement\_pcs}};
+
+% -- dim_activite (droite haut) --
+\node[hdr]  (ah)  at (7.5, 7)   {\texttt{dim\_activite} \textcolor{azure}{SCD1}};
+\node[dim,  below=0 of ah]      (a1) {\underline{PK activite\_id}};
+\node[dim,  below=0 of a1]      (a2) {naf\_section\_code / libelle};
+\node[dim,  below=0 of a2]      (a3) {forme\_juridique\_code / libelle};
+\node[dim,  below=0 of a3]      (a4) {secteur\_activite};
+\node[dim,  below=0 of a4]      (a5) {type\_entreprise};
+
+% -- dim_logement (droite bas) --
+\node[hdr]  (lh)  at (7.5, 0)   {\texttt{dim\_logement}};
+\node[dim,  below=0 of lh]      (l1) {\underline{PK logement\_id}};
+\node[dim,  below=0 of l1]      (l2) {occupation\_code / libelle};
+\node[dim,  below=0 of l2]      (l3) {surpeuplement\_code / libelle};
+\node[dim,  below=0 of l3]      (l4) {type\_menage\_code / libelle};
+\node[dim,  below=0 of l4]      (l5) {taille\_menage\_code / libelle};
+
+% -- dim_indicateur (haut droit centre) --
+\node[hdr]  (ih)  at (7.5, 12)  {\texttt{dim\_indicateur}};
+\node[dim,  below=0 of ih]      (i1) {\underline{PK indicateur\_id}};
+\node[dim,  below=0 of i1]      (i2) {indicateur\_code / libelle};
+\node[dim,  below=0 of i2]      (i3) {unite\_mesure};
+\node[dim,  below=0 of i3]      (i4) {domaine / source\_donnees};
+
+% ============================================================
+% TABLES DE FAITS (7) -- centre
+% ============================================================
+
+\node[hdrf] (fh)   at (0, 7)    {Tables de faits (7)};
+
+\node[fait, below=0 of fh]      (f1)
+    {\textbf{fait\_population}\\ temps\_id, geo\_id, demo\_id\\ population, pop\_H, pop\_F};
+
+\node[fait, below=0.1cm of f1]  (f2)
+    {\textbf{fait\_evenements\_demo}\\ temps\_id, geo\_id\\ naissances, deces, solde\_naturel};
+
+\node[fait, below=0.1cm of f2]  (f3)
+    {\textbf{fait\_entreprises}\\ temps\_id, geo\_id, activite\_id\\ nb\_creations, nb\_micro, nb\_ei};
+
+\node[fait, below=0.1cm of f3]  (f4)
+    {\textbf{fait\_revenus}\\ temps\_id, geo\_id, demo\_id\\ revenu\_median, taux\_pauvrete};
+
+\node[fait, below=0.1cm of f4]  (f5)
+    {\textbf{fait\_logement}\\ temps\_id, geo\_id, logement\_id\\ nb\_residences, taux\_surpeuplement};
+
+\node[fait, below=0.1cm of f5]  (f6)
+    {\textcolor{successgreen}{\textbf{fait\_emploi}} \textcolor{successgreen}{[E6]}\\ temps\_id, geo\_id, demo\_id\\ taux\_activite, taux\_emploi, taux\_chomage};
+
+\node[fait, below=0.1cm of f6]  (f7)
+    {\textcolor{successgreen}{\textbf{fait\_menages}} \textcolor{successgreen}{[E6]}\\ temps\_id, geo\_id, demo\_id, logement\_id\\ nb\_menages, taille\_moyenne};
+
+% ============================================================
+% FLECHES dim -> faits
+% ============================================================
+
+% dim_temps -> faits
+\draw[arrow] (t5.south)  -- (fh.north);
+
+% dim_geographie -> faits
+\draw[arrow] (gh.east)   -- (fh.west);
+
+% dim_demographie -> faits
+\draw[arrow] (dh.east)   -- (f1.west);
+\draw[arrow] (dh.east)   -- (f4.west);
+\draw[arrown](dh.east)   -- (f6.west);
+\draw[arrown](dh.east)   -- (f7.west);
+
+% dim_activite -> fait_entreprises
+\draw[arrow] (ah.west)   -- (f3.east);
+
+% dim_logement -> faits
+\draw[arrow] (lh.west)   -- (f5.east);
+\draw[arrown](lh.west)   -- (f7.east);
+
+\end{tikzpicture}
+}
+\caption{Schema en etoile complet -- Data Warehouse E6 (vert = nouveautes E6, tirete = nouvelles liaisons)}
+\end{figure}
+
+
+% ----------------------------------------------------------------
+\subsection{Nouveau modele physique (E6)}
+% ----------------------------------------------------------------
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  % En-tete de table (fond colore)
+  hd/.style ={rectangle, draw=darkblue,  fill=darkblue,
+               text=white, text width=4.8cm,
+               align=center, inner sep=3pt, font=\scriptsize\bfseries},
+  hdn/.style={rectangle, draw=successgreen!70!black, fill=successgreen!80!black,
+               text=white, text width=4.8cm,
+               align=center, inner sep=3pt, font=\scriptsize\bfseries},
+  % Ligne PK
+  pk/.style ={rectangle, draw=darkblue, fill=yellow!20,
+               text width=4.8cm, align=left,
+               inner sep=2pt, font=\scriptsize},
+  % Ligne FK
+  fk/.style ={rectangle, draw=darkblue, fill=blue!8,
+               text width=4.8cm, align=left,
+               inner sep=2pt, font=\scriptsize},
+  % Ligne attribut normal
+  col/.style={rectangle, draw=darkblue!40, fill=white,
+               text width=4.8cm, align=left,
+               inner sep=2pt, font=\scriptsize},
+  % Ligne attribut E6 nouveau
+  atn/.style={rectangle, draw=successgreen!60, fill=green!6,
+               text width=4.8cm, align=left,
+               inner sep=2pt, font=\scriptsize},
+  % Fleches FK
+  fkarrow/.style={->, thick, darkblue!60, shorten >=2pt, shorten <=2pt},
+  fknarrow/.style={->, thick, successgreen!70, dashed, shorten >=2pt, shorten <=2pt},
+]
+
+% ============================================================
+%  dim_temps  (droite, centre)
+% ============================================================
+\node[hd]  (tH)  at (9, 2)     {dwh.dim\_temps};
+\node[pk,  below=0 of tH] (tPK) {PK temps\_id INT};
+\node[col,  below=0 of tPK](t1)  {annee INT NOT NULL};
+\node[col,  below=0 of t1] (t2)  {trimestre INT NULL};
+\node[col,  below=0 of t2] (t3)  {mois INT NULL};
+\node[col,  below=0 of t3] (t4)  {libelle\_periode NVARCHAR(50)};
+
+% ============================================================
+%  dim_geographie  (gauche, milieu haut)
+% ============================================================
+\node[hd]  (gH)  at (-9, 12)   {dwh.dim\_geographie \textemdash{} SCD2};
+\node[pk,  below=0 of gH]  (gPK) {PK geo\_id INT};
+\node[col,  below=0 of gPK] (g1)  {commune\_code NVARCHAR(10)};
+\node[col,  below=0 of g1]  (g2)  {commune\_nom NVARCHAR(255)};
+\node[col,  below=0 of g2]  (g3)  {departement\_code NVARCHAR(3)};
+\node[col,  below=0 of g3]  (g4)  {departement\_nom NVARCHAR(100)};
+\node[col,  below=0 of g4]  (g5)  {latitude FLOAT, longitude FLOAT};
+\node[col,  below=0 of g5]  (g6)  {niveau\_geo NVARCHAR(20)};
+\node[atn, below=0 of g6]  (g7)  {\textcolor{successgreen}{date\_debut\_validite DATETIME}};
+\node[atn, below=0 of g7]  (g8)  {\textcolor{successgreen}{date\_fin\_validite DATETIME NULL}};
+\node[atn, below=0 of g8]  (g9)  {\textcolor{successgreen}{est\_actif BIT DEFAULT 1}};
+\node[atn, below=0 of g9]  (g10) {\textcolor{successgreen}{version INT DEFAULT 1}};
+
+% ============================================================
+%  dim_demographie  (gauche, milieu bas)
+% ============================================================
+\node[hd]  (dH)  at (-9, 3)    {dwh.dim\_demographie \textemdash{} SCD3};
+\node[pk,  below=0 of dH]  (dPK) {PK demo\_id INT};
+\node[col,  below=0 of dPK] (d1)  {sexe\_code NVARCHAR(5)};
+\node[col,  below=0 of d1]  (d2)  {age\_code NVARCHAR(20)};
+\node[col,  below=0 of d2]  (d3)  {age\_min INT, age\_max INT};
+\node[col,  below=0 of d3]  (d4)  {pcs\_code NVARCHAR(5)};
+\node[col,  below=0 of d4]  (d5)  {pcs\_libelle NVARCHAR(255)};
+\node[atn, below=0 of d5]  (d6)  {\textcolor{successgreen}{ancien\_pcs\_libelle NVARCHAR(255)}};
+\node[atn, below=0 of d6]  (d7)  {\textcolor{successgreen}{date\_changement\_pcs DATETIME}};
+
+% ============================================================
+%  dim_activite  (droite, haut)
+% ============================================================
+\node[hd]  (aH)  at (9, 11)    {dwh.dim\_activite \textemdash{} SCD1};
+\node[pk,  below=0 of aH]  (aPK) {PK activite\_id INT};
+\node[col,  below=0 of aPK] (a1)  {naf\_section\_code NVARCHAR(5)};
+\node[col,  below=0 of a1]  (a2)  {naf\_section\_libelle NVARCHAR(255)};
+\node[col,  below=0 of a2]  (a3)  {forme\_juridique\_code NVARCHAR(20)};
+\node[col,  below=0 of a3]  (a4)  {forme\_juridique\_libelle NVARCHAR(255)};
+\node[col,  below=0 of a4]  (a5)  {secteur\_activite NVARCHAR(100)};
+
+% ============================================================
+%  dim_logement  (droite, bas)
+% ============================================================
+\node[hd]  (lH)  at (9, -7)    {dwh.dim\_logement};
+\node[pk,  below=0 of lH]  (lPK) {PK logement\_id INT};
+\node[col,  below=0 of lPK] (l1)  {occupation\_code NVARCHAR(20)};
+\node[col,  below=0 of l1]  (l2)  {surpeuplement\_code NVARCHAR(5)};
+\node[col,  below=0 of l2]  (l3)  {type\_menage\_code NVARCHAR(20)};
+\node[col,  below=0 of l3]  (l4)  {taille\_menage\_code NVARCHAR(20)};
+
+% ============================================================
+%  dim_indicateur  (droite, tres haut)
+% ============================================================
+\node[hd]  (iH)  at (9, 15)    {dwh.dim\_indicateur};
+\node[pk,  below=0 of iH]  (iPK) {PK indicateur\_id INT};
+\node[col,  below=0 of iPK] (i1)  {indicateur\_code NVARCHAR(50)};
+\node[col,  below=0 of i1]  (i2)  {unite\_mesure NVARCHAR(50)};
+\node[col,  below=0 of i2]  (i3)  {domaine NVARCHAR(50)};
+\node[col,  below=0 of i3]  (i4)  {source\_donnees NVARCHAR(100)};
+
+% ============================================================
+%  fait_population  (centre haut)
+% ============================================================
+\node[hd]  (fpH) at (0, 13)    {dwh.fait\_population};
+\node[pk,  below=0 of fpH] (fpPK){PK population\_id BIGINT};
+\node[fk,  below=0 of fpPK](fp1) {FK temps\_id INT};
+\node[fk,  below=0 of fp1] (fp2) {FK geo\_id INT};
+\node[fk,  below=0 of fp2] (fp3) {FK demo\_id INT};
+\node[col,  below=0 of fp3] (fp4) {population FLOAT};
+\node[col,  below=0 of fp4] (fp5) {population\_hommes FLOAT};
+\node[col,  below=0 of fp5] (fp6) {population\_femmes FLOAT};
+
+% ============================================================
+%  fait_evenements_demo
+% ============================================================
+\node[hd]  (feH) at (0, 8.5)   {dwh.fait\_evenements\_demo};
+\node[pk,  below=0 of feH] (fePK){PK evenement\_id BIGINT};
+\node[fk,  below=0 of fePK](fe1) {FK temps\_id INT};
+\node[fk,  below=0 of fe1] (fe2) {FK geo\_id INT};
+\node[col,  below=0 of fe2] (fe3) {naissances INT};
+\node[col,  below=0 of fe3] (fe4) {deces INT};
+\node[col,  below=0 of fe4] (fe5) {solde\_naturel AS (naissances-deces)};
+
+% ============================================================
+%  fait_entreprises
+% ============================================================
+\node[hd]  (fentH) at (0, 4.5) {dwh.fait\_entreprises};
+\node[pk,  below=0 of fentH](fentPK){PK entreprise\_id BIGINT};
+\node[fk,  below=0 of fentPK](fent1){FK temps\_id INT};
+\node[fk,  below=0 of fent1](fent2){FK geo\_id INT};
+\node[fk,  below=0 of fent2](fent3){FK activite\_id INT};
+\node[col,  below=0 of fent3](fent4){nb\_creations\_entreprises INT};
+\node[col,  below=0 of fent4](fent5){nb\_creations\_micro INT};
+
+% ============================================================
+%  fait_revenus
+% ============================================================
+\node[hd]  (frevH) at (0, 0.5) {dwh.fait\_revenus};
+\node[pk,  below=0 of frevH](frevPK){PK revenu\_id BIGINT};
+\node[fk,  below=0 of frevPK](frev1){FK temps\_id INT};
+\node[fk,  below=0 of frev1](frev2){FK geo\_id INT};
+\node[fk,  below=0 of frev2](frev3){FK demo\_id INT NULL};
+\node[col,  below=0 of frev3](frev4){revenu\_median FLOAT};
+\node[col,  below=0 of frev4](frev5){taux\_pauvrete FLOAT};
+
+% ============================================================
+%  fait_logement
+% ============================================================
+\node[hd]  (flogH) at (0, -2.5){dwh.fait\_logement};
+\node[pk,  below=0 of flogH](flogPK){PK logement\_id BIGINT};
+\node[fk,  below=0 of flogPK](flog1){FK temps\_id INT};
+\node[fk,  below=0 of flog1](flog2){FK geo\_id INT};
+\node[fk,  below=0 of flog2](flog3){FK logement\_dim\_id INT NULL};
+\node[col,  below=0 of flog3](flog4){nb\_residences\_principales FLOAT};
+\node[col,  below=0 of flog4](flog5){taux\_surpeuplement FLOAT};
+
+% ============================================================
+%  fait_emploi  [E6]
+% ============================================================
+\node[hdn] (fempH) at (0, -6.5){dwh.fait\_emploi [E6]};
+\node[pk,  below=0 of fempH](fempPK){PK emploi\_id BIGINT};
+\node[fk,  below=0 of fempPK](femp1){FK temps\_id INT};
+\node[fk,  below=0 of femp1](femp2){FK geo\_id INT};
+\node[fk,  below=0 of femp2](femp3){FK demo\_id INT};
+\node[atn, below=0 of femp3](femp4){\textcolor{successgreen}{taux\_activite FLOAT}};
+\node[atn, below=0 of femp4](femp5){\textcolor{successgreen}{taux\_emploi FLOAT}};
+\node[atn, below=0 of femp5](femp6){\textcolor{successgreen}{taux\_chomage FLOAT}};
+
+% ============================================================
+%  fait_menages  [E6]
+% ============================================================
+\node[hdn] (fmenH) at (0, -10.5){dwh.fait\_menages [E6]};
+\node[pk,  below=0 of fmenH](fmenPK){PK menage\_id BIGINT};
+\node[fk,  below=0 of fmenPK](fmen1){FK temps\_id INT};
+\node[fk,  below=0 of fmen1](fmen2){FK geo\_id INT};
+\node[fk,  below=0 of fmen2](fmen3){FK demo\_id INT NULL};
+\node[fk,  below=0 of fmen3](fmen4){FK logement\_dim\_id INT NULL};
+\node[atn, below=0 of fmen4](fmen5){\textcolor{successgreen}{nb\_menages FLOAT}};
+\node[atn, below=0 of fmen5](fmen6){\textcolor{successgreen}{taille\_moyenne\_menage FLOAT}};
+
+% ============================================================
+%  RELATIONS FK (fleches)
+% ============================================================
+
+% dim_temps -> toutes les tables de faits (fleches depuis le cote droit des faits)
+\draw[fkarrow] (fp1.east)   -- (tPK.west);
+\draw[fkarrow] (fe1.east)   -- (tPK.west);
+\draw[fkarrow] (fent1.east) -- (tPK.west);
+\draw[fkarrow] (frev1.east) -- (tPK.west);
+\draw[fkarrow] (flog1.east) -- (tPK.west);
+\draw[fknarrow](femp1.east) -- (tPK.west);
+\draw[fknarrow](fmen1.east) -- (tPK.west);
+
+% dim_geographie -> toutes les tables de faits
+\draw[fkarrow] (fp2.west)   -- (gPK.east);
+\draw[fkarrow] (fe2.west)   -- (gPK.east);
+\draw[fkarrow] (fent2.west) -- (gPK.east);
+\draw[fkarrow] (frev2.west) -- (gPK.east);
+\draw[fkarrow] (flog2.west) -- (gPK.east);
+\draw[fknarrow](femp2.west) -- (gPK.east);
+\draw[fknarrow](fmen2.west) -- (gPK.east);
+
+% dim_demographie -> faits
+\draw[fkarrow] (fp3.west)   -- ++(-0.2,0) |- (dPK.north);
+\draw[fkarrow] (frev3.west) -- ++(-0.2,0) |- (dPK.south);
+\draw[fknarrow](femp3.west) -- ++(-0.3,0) |- (dPK.south);
+\draw[fknarrow](fmen3.west) -- ++(-0.4,0) |- (dPK.south);
+
+% dim_activite -> fait_entreprises
+\draw[fkarrow] (fent3.east) -- (aPK.west);
+
+% dim_logement -> faits
+\draw[fkarrow] (flog3.east) -- (lPK.west);
+\draw[fknarrow](fmen4.east) -- (lPK.west);
+
+\end{tikzpicture}
+}
+\caption{Modele physique ERD -- Data Warehouse E6 complet
+  (jaune = PK, bleu clair = FK, vert = nouveautes E6,
+   fleche pleine = lien E5, fleche tiretee = nouveau lien E6)}
+\end{figure}
+
+
+%=================================================================
+%                     CONCLUSION
+%=================================================================
+\newpage
+\section{Conclusion}
+
+Le projet E6 a transforme l'entrepot de donnees E5 en un systeme operationnel complet. Sur le plan de la maintenance, un processus de gestion des incidents calque sur la realite de l'equipe a ete formalise, accompagne d'une journalisation a deux niveaux (logs Python et table \texttt{dwh.log\_etl}) et de notifications email automatiques a l'issue de chaque execution du pipeline. Une strategie de sauvegarde avec export BACPAC vers le Data Lake ADLS Gen2 et des politiques de retention Azure completent ce dispositif. L'entrepot a egalement ete etendu par l'integration de deux nouvelles tables de faits (emploi, menages) et la refonte des roles de securite : quatre roles RBAC metier et un mecanisme de Row-Level Security sur \texttt{dwh.dim\_geographie} qui restreint automatiquement les donnees visibles par chaque consultant a son perimetre departemental.
+
+Sur le plan dimensionnel, les trois types de variations de Kimball (SCD 1, 2 et 3) ont ete implementes sur des dimensions distinctes, avec les procedures SQL \texttt{MERGE} et les adaptations ETL correspondantes. La simulation d'un effectif fictif de cinq cent sept employes repartis dans cent une agences ancrees dans la geographie regionale a permis de valider concretement le dispositif de securite dans un contexte metier realiste. L'ensemble des evolutions est documente dans ce rapport avec la mise a jour des modeles logique et physique de l'entrepot.
+
+Pour aller plus loin, plusieurs evolutions pourraient prolonger ce travail : integration d'Azure Monitor pour des alertes temps reel, mise en place d'un Change Data Capture (CDC) pour declencher les ETL a la source, adoption d'un framework de qualite des donnees (Great Expectations, dbt), ou migration du pipeline vers Azure Data Factory pour une orchestration native et un monitoring centralise.
+
+
+%=================================================================
+%                     ANNEXES
+%=================================================================
+\newpage
+\appendix
+\section{Annexes}
+
+%=================================================================
+%  ANNEXE B : PROCEDURES D'EXPLOITATION ET DE SCALABILITE
+%=================================================================
+\subsection{Procedures d'exploitation et de scalabilite}
+\label{sec:annexe_procedures}
+
+\subsubsection*{Procedure 1 -- Creer un nouvel acces utilisateur}
+
+\begin{enumerate}[leftmargin=*]
+    \item Recevoir la demande d'acces via le systeme de ticketing
+          (type : \texttt{changement}, priorite : P4)
+    \item Identifier le role approprie selon le profil :
+          \texttt{role\_analyst} (analyste interne) ou
+          \texttt{role\_consultant} (collaborateur agence avec RLS)
+    \item Verifier que l'employe existe dans \texttt{security.employes} ;
+          si absent, l'ajouter avec le script \texttt{load\_security.py --load}
+    \item Creer l'utilisateur SQL et assigner le role via le script ETL :
+          \texttt{python load\_security.py --create-users}
+    \item Verifier les permissions effectives avec \texttt{security.v\_acces\_employes}
+          et tester la connexion depuis Azure Data Studio
+    \item Documenter dans le ticket : login cree, role attribue, zone RLS, date
+    \item Notifier l'utilisateur de ses identifiants par canal securise
+\end{enumerate}
+
+\subsubsection*{Procedure 2 -- Ajouter un nouveau datamart analytique}
+
+\begin{enumerate}[leftmargin=*]
+    \item Recevoir le besoin d'analyse (ticket type : \texttt{changement})
+    \item Identifier les tables de faits et dimensions impliquees
+    \item Creer la vue dans le schema \texttt{dm} en jointurant sur les dimensions
+          actives (\texttt{est\_actif = 1} si SCD Type 2 implique)
+    \item Accorder les droits de lecture : \texttt{GRANT SELECT ON dm.<vue> TO role\_consultant}
+    \item Valider la propagation du filtre RLS si la vue jointure sur \texttt{dim\_geographie}
+    \item Ajouter un test dans \texttt{test\_e6\_evolution.py} pour verifier l'existence de la vue
+    \item Documenter la vue dans le dictionnaire de donnees et mettre a jour
+          le modele logique
+
+\medskip
+\noindent\colorbox{codebg}{\parbox{\dimexpr\textwidth-2\fboxsep\relax}{\small\color{darkblue}\textbf{Code A.9} --- \textit{Exemple de creation de vue datamart}\hfill $\Rightarrow$ voir Annexe~\ref{lst:annex09}, p.~\pageref{lst:annex09}}}
+\medskip
+
+\end{enumerate}
+
+\subsubsection*{Procedure 3 -- Montee en charge (scalabilite)}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Diagnostic} : Identifier le goulot d'etranglement via les vues de monitoring
+          (\texttt{analytics.v\_resume\_etl}, \texttt{sys.dm\_exec\_sessions})
+    \item \textbf{Base de donnees} : Augmenter le SKU Azure SQL dans \texttt{terraform.tfvars}
+          (ex : S0 $\rightarrow$ S2 $\rightarrow$ S4) puis \texttt{terraform apply}
+    \item \textbf{Partitionnement} : Si les tables de faits depassent 10 millions de lignes,
+          envisager un partitionnement par annee sur \texttt{annee\_id}
+    \item \textbf{Index} : Ajouter des index couvrants sur les colonnes de filtrage frequentes
+          (departement\_code, annee\_id)
+    \item \textbf{ETL} : Activer le chargement parallele par departement dans
+          \texttt{run\_etl.py} pour reduire la duree du pipeline
+    \item \textbf{Archivage} : Exporter les donnees anterieures a N-3 vers le Data Lake
+          via \texttt{backup\_to\_datalake.py} et les supprimer du DWH actif
+    \item \textbf{Validation} : Controler les performances apres chaque modification
+          et documenter les gains dans le ticket de changement
+\end{enumerate}
+
+\subsubsection*{Procedure 4 -- Ajouter une nouvelle source de donnees}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Analyse} : Etudier le format (CSV, API, JSON), le volume et la frequence
+          de mise a jour de la nouvelle source
+    \item \textbf{Staging} : Creer la table de staging \texttt{stg.stg\_nouvelle\_source}
+          avec les colonnes brutes de la source
+    \item \textbf{Mapping} : Identifier les correspondances avec les dimensions existantes
+          (ou creer de nouvelles dimensions si necessaire)
+    \item \textbf{Schema} : Creer ou modifier la table de faits dans le schema \texttt{dwh}
+          avec les cles etrangeres vers les dimensions
+    \item \textbf{ETL} : Developper la fonction de chargement dans \texttt{load\_facts.py}
+          en respectant le pattern SCD adequat pour chaque dimension impliquee
+    \item \textbf{Datamart} : Creer ou mettre a jour les vues dans le schema \texttt{dm}
+          (cf. Procedure 2)
+    \item \textbf{Tests} : Ajouter les tests de validation dans \texttt{test\_e6\_evolution.py}
+    \item \textbf{Deploiement} : Integrer le script SQL dans le pipeline Terraform
+          (\texttt{Terraform/sql/}) et valider avec \texttt{terraform apply}
+    \item \textbf{Documentation} : Mettre a jour le modele logique et le dictionnaire
+          de donnees
+\end{enumerate}
+
+
+
+%=================================================================
+%  ANNEXE B : SCRIPTS ET EXTRAITS DE CODE
+%=================================================================
+\subsection{Scripts et extraits de code}
+
+\small
+
+% ---- Code A.1 (17 lignes) ----
+\subsubsection*{A.1 \textemdash\space Configuration du logging dans les ETL}
+
+\begin{lstlisting}[language=Python, caption={Configuration du logging dans les ETL}, label={lst:annex01}]
+import logging
+
+# Configuration du logger avec sortie fichier + console
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(name)s - %(message)s',
+    handlers=[
+        logging.FileHandler('etl_pipeline.log'),
+        logging.StreamHandler()  # Sortie console
+    ]
+)
+logger = logging.getLogger('etl_pipeline')
+
+# Exemples d'utilisation
+logger.info("Debut du chargement de dim_geographie")
+logger.warning("Table staging vide, etape ignoree")
+logger.error("Cle etrangere invalide pour fait_revenus")
+\end{lstlisting}
+
+% ---- Code A.2 (19 lignes) ----
+\subsubsection*{A.2 \textemdash\space Fonction log\_etl\_db() dans les scripts ETL}
+
+\begin{lstlisting}[language=Python, caption={Fonction log\_etl\_db() dans les scripts ETL}, label={lst:annex02}]
+def log_etl_db(engine, etape, table_cible, statut,
+               nb_lignes=0, duree=0, message=''):
+    """Enregistre un evenement ETL dans dwh.log_etl."""
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                INSERT INTO dwh.log_etl
+                  (etape, table_cible, statut, nb_lignes,
+                   duree_secondes, message)
+                VALUES (:etape, :table, :statut, :nb,
+                        :duree, :msg)
+            """), {
+                'etape': etape, 'table': table_cible,
+                'statut': statut, 'nb': nb_lignes,
+                'duree': duree, 'msg': message
+            })
+            conn.commit()
+    except Exception as e:
+        logger.error(f"Impossible de loguer en BDD: {e}")
+\end{lstlisting}
+
+% ---- Code A.3 (16 lignes) ----
+\subsubsection*{A.3 \textemdash\space Flux de la sauvegarde}
+
+\begin{lstlisting}[numbers=none, caption={Flux de la sauvegarde}, label={lst:annex03}]
+Azure SQL Database
+  |
+  |  Sauvegardes automatiques (complet + differentiel + logs)
+  |  gerees par Azure (PITR, retention 14 jours)
+  |
+  v
+backup_to_datalake.py (etape 5 du pipeline ETL)
+  |
+  |  az sql db export  -->  fichier .bacpac
+  |
+  v
+Data Lake ADLS Gen2
+  raw/backups/projet_data_eng_20260217_143000.bacpac
+  |
+  +-- Log dans dwh.log_etl
+  +-- Nettoyage automatique des .bacpac > 30 jours
+\end{lstlisting}
+
+% ---- Code A.4 (32 lignes) ----
+\subsubsection*{A.4 \textemdash\space Export BACPAC vers le Data Lake (backup\_to\_datalake.py)}
+
+\begin{lstlisting}[language=Python, caption={Export BACPAC vers le Data Lake (backup\_to\_datalake.py)}, label={lst:annex04}]
+def export_bacpac(config, resource_group):
+    """Exporte la base Azure SQL en .bacpac via az sql db export."""
+    storage_account = config['storage_account']
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    blob_name = f"backups/{config['database']}_{timestamp}.bacpac"
+
+    # Recuperer la cle du storage account
+    result = subprocess.run(
+        ['az', 'storage', 'account', 'keys', 'list',
+         '--account-name', storage_account,
+         '--resource-group', resource_group,
+         '--query', '[0].value', '-o', 'tsv'],
+        capture_output=True, text=True)
+    storage_key = result.stdout.strip()
+
+    storage_uri = (f"https://{storage_account}.blob.core.windows.net"
+                   f"/raw/{blob_name}")
+
+    # Exporter la base en .bacpac directement vers le blob
+    subprocess.run([
+        'az', 'sql', 'db', 'export',
+        '--admin-user', config['user'],
+        '--admin-password', config['password'],
+        '--name', config['database'],
+        '--server', config['server'],
+        '--resource-group', resource_group,
+        '--storage-key', storage_key,
+        '--storage-key-type', 'StorageAccessKey',
+        '--storage-uri', storage_uri,
+    ], capture_output=True, text=True, timeout=1800)
+
+    return blob_name
+\end{lstlisting}
+
+% ---- Code A.5 (17 lignes) ----
+\subsubsection*{A.5 \textemdash\space Nettoyage automatique des anciens backups}
+
+\begin{lstlisting}[language=Python, caption={Nettoyage automatique des anciens backups}, label={lst:annex05}]
+def cleanup_old_backups(config, resource_group, retention_days=30):
+    """Supprime les .bacpac de plus de retention_days jours."""
+    result = subprocess.run(
+        ['az', 'storage', 'blob', 'list',
+         '--account-name', config['storage_account'],
+         '--container-name', 'raw', '--prefix', 'backups/',
+         '--query', '[].{name:name}', '-o', 'tsv'],
+        capture_output=True, text=True)
+
+    for blob_name in result.stdout.strip().split('\n'):
+        # Extraire la date du nom (db_YYYYMMDD_HHMMSS.bacpac)
+        blob_date = datetime.strptime(...)
+        if (datetime.now() - blob_date).days > retention_days:
+            subprocess.run(['az', 'storage', 'blob', 'delete',
+                '--account-name', config['storage_account'],
+                '--container-name', 'raw',
+                '--name', blob_name])
+\end{lstlisting}
+
+% ---- Code A.6 (20 lignes) ----
+\subsubsection*{A.6 \textemdash\space Restauration via Azure CLI}
+
+\begin{lstlisting}[language=bash, caption={Restauration via Azure CLI}, label={lst:annex06}]
+# Methode 1 : Restauration Point-in-Time (PITR)
+# Restaure la base a un instant precis (dans les 14 derniers jours)
+az sql db restore \
+    --resource-group rg-projet-data \
+    --server sqlelbrek-prod \
+    --name projet_data_eng \
+    --dest-name projet_data_eng_restored \
+    --time "2026-02-16T10:00:00Z"
+
+# Methode 2 : Import d'un fichier BACPAC depuis le Data Lake
+# Recree la base a partir d'un export stocke dans le Data Lake
+az sql db import \
+    --resource-group rg-projet-data \
+    --server sqlelbrek-prod \
+    --name projet_data_eng_restored \
+    --storage-key <storage_key> \
+    --storage-key-type StorageAccessKey \
+    --storage-uri "https://dlelbrek.blob.core.windows.net/raw/\
+backups/projet_data_eng_20260217_143000.bacpac" \
+    --admin-user sqladmin --admin-password ***
+\end{lstlisting}
+
+% ---- Code A.7 (24 lignes) ----
+\subsubsection*{A.7 \textemdash\space Tables du schema security (011\_security\_rls.sql)}
+
+\begin{lstlisting}[language=SQL, caption={Tables du schema security (011\_security\_rls.sql)}, label={lst:annex07}]
+-- 101 agences : villes > 10 000 hab dans la region
+CREATE TABLE security.agences (
+    agence_id        INT           IDENTITY(1,1) PRIMARY KEY,
+    commune_code     NVARCHAR(10)  NOT NULL,
+    ville            NVARCHAR(100) NOT NULL,
+    departement_code NVARCHAR(3)   NOT NULL,
+    taille_agence    NVARCHAR(20)  NOT NULL  -- 'GRANDE', 'MOYENNE', 'PETITE'
+);
+
+-- Employes avec hierarchie (519 au total)
+CREATE TABLE security.employes (
+    employe_id          INT           IDENTITY(1,1) PRIMARY KEY,
+    login_sql           NVARCHAR(100) NOT NULL UNIQUE,
+    niveau_hierarchique NVARCHAR(30)  NOT NULL,
+    agence_id           INT           NULL REFERENCES security.agences,
+    departement_code    NVARCHAR(3)   NULL,   -- NULL = region entiere
+    manager_id          INT           NULL REFERENCES security.employes
+);
+
+-- Mapping login -> departements autorises (alimente par ETL)
+CREATE TABLE security.utilisateurs_zones (
+    login_sql        NVARCHAR(100) NOT NULL,
+    departement_code NVARCHAR(3)   NULL  -- NULL = acces region entiere
+);
+\end{lstlisting}
+
+% ---- Code A.8 (26 lignes) ----
+\subsubsection*{A.8 \textemdash\space Fonction predicat RLS (011\_security\_rls.sql)}
+
+\begin{lstlisting}[language=SQL, caption={Fonction predicat RLS (011\_security\_rls.sql)}, label={lst:annex08}]
+CREATE FUNCTION security.fn_rls_geographie(@departement_code NVARCHAR(3))
+RETURNS TABLE WITH SCHEMABINDING AS
+RETURN
+    SELECT 1 AS acces_autorise
+    WHERE
+        -- Utilisateur absent de utilisateurs_zones -> acces total
+        -- (role_admin, role_analyst, role_etl_process)
+        NOT EXISTS (
+            SELECT 1 FROM security.utilisateurs_zones
+            WHERE login_sql = USER_NAME()
+        )
+        OR
+        -- Utilisateur enregistre (role_consultant) -> filtrer par dept
+        EXISTS (
+            SELECT 1 FROM security.utilisateurs_zones
+            WHERE login_sql = USER_NAME()
+              AND (departement_code = @departement_code
+                   OR departement_code IS NULL)  -- NULL = region entiere
+        );
+GO
+
+CREATE SECURITY POLICY security.policy_rls_geographie
+    ADD FILTER PREDICATE
+        security.fn_rls_geographie(departement_code)
+    ON dwh.dim_geographie
+    WITH (STATE = ON, SCHEMABINDING = ON);
+\end{lstlisting}
+
+% ---- Code A.9 (25 lignes) ----
+\subsubsection*{A.9 \textemdash\space Extrait de code 9}
+
+\begin{lstlisting}[language=SQL, label={lst:annex09}]
+CREATE VIEW dm.vm_nouveau_datamart AS
+SELECT ... FROM dwh.fait_xxx f
+JOIN dwh.dim_xxx d ON f.xxx_id = d.xxx_id
+GROUP BY ...;
+    \end{lstlisting}
+
+% ---- Code A.10 (18 lignes) ----
+\subsubsection*{A.10 \textemdash\space Implementation SCD Type 1 -- Ecrasement}
+
+\begin{lstlisting}[language=SQL, caption={Implementation SCD Type 1 -- Ecrasement}, label={lst:annex10}]
+CREATE PROCEDURE dwh.sp_scd_type1_activite
+    @code_naf        NVARCHAR(10),
+    @nouveau_libelle NVARCHAR(200)
+AS
+BEGIN
+    -- Journaliser l'ancienne valeur (pour audit)
+    INSERT INTO dwh.log_etl (etape, table_cible, statut, message)
+    SELECT 'SCD_TYPE1', 'dim_activite', 'INFO',
+        'Ancien libelle: ' + libelle_section
+    FROM dwh.dim_activite
+    WHERE code_section_naf = @code_naf;
+
+    -- Ecrasement de la valeur
+    UPDATE dwh.dim_activite
+    SET libelle_section = @nouveau_libelle,
+        date_modification = GETDATE()
+    WHERE code_section_naf = @code_naf;
+END;
+\end{lstlisting}
+
+% ---- Code A.11 (49 lignes) ----
+\subsubsection*{A.11 \textemdash\space Procedure SCD Type 2 -- Historisation}
+
+\begin{lstlisting}[language=SQL, caption={Procedure SCD Type 2 -- Historisation}, label={lst:annex11}]
+CREATE PROCEDURE dwh.sp_scd_type2_geographie
+    @code_commune     NVARCHAR(10),
+    @nouveau_nom      NVARCHAR(200),
+    @nouveau_code     NVARCHAR(10) = NULL
+AS
+BEGIN
+    DECLARE @ancienne_version INT
+    DECLARE @ancien_id INT
+
+    -- Recuperer la version courante
+    SELECT @ancienne_version = version, @ancien_id = geo_id
+    FROM dwh.dim_geographie
+    WHERE code_commune = @code_commune AND est_actif = 1;
+
+    -- Fermer l'ancien enregistrement
+    UPDATE dwh.dim_geographie
+    SET date_fin_validite = GETDATE(),
+        est_actif = 0,
+        date_modification = GETDATE()
+    WHERE geo_id = @ancien_id;
+
+    -- Inserer la nouvelle version
+    INSERT INTO dwh.dim_geographie (
+        code_departement, nom_departement, code_region,
+        nom_region, niveau, code_commune, nom_commune,
+        latitude, longitude,
+        date_debut_validite, date_fin_validite,
+        est_actif, version,
+        date_creation, date_modification
+    )
+    SELECT
+        code_departement, nom_departement, code_region,
+        nom_region, niveau,
+        ISNULL(@nouveau_code, code_commune),
+        @nouveau_nom,
+        latitude, longitude,
+        GETDATE(), NULL,
+        1, @ancienne_version + 1,
+        GETDATE(), GETDATE()
+    FROM dwh.dim_geographie
+    WHERE geo_id = @ancien_id;
+
+    -- Journaliser le changement
+    INSERT INTO dwh.log_etl (etape, table_cible, statut, message)
+    VALUES ('SCD_TYPE2', 'dim_geographie', 'SUCCES',
+        'Nouvelle version (v' + CAST(@ancienne_version + 1 AS VARCHAR)
+        + ') pour commune ' + @code_commune
+        + ' -> ' + @nouveau_nom);
+END;
+\end{lstlisting}
+
+% ---- Code A.12 (18 lignes) ----
+\subsubsection*{A.12 \textemdash\space Procedure SCD Type 3}
+
+\begin{lstlisting}[language=SQL, caption={Procedure SCD Type 3}, label={lst:annex12}]
+CREATE PROCEDURE dwh.sp_scd_type3_demographie
+    @code_pcs        NVARCHAR(10),
+    @nouveau_libelle NVARCHAR(200)
+AS
+BEGIN
+    -- Sauvegarder l'ancien libelle et mettre a jour
+    UPDATE dwh.dim_demographie
+    SET ancien_libelle_pcs = libelle_pcs,
+        libelle_pcs = @nouveau_libelle,
+        date_changement_pcs = GETDATE(),
+        date_modification = GETDATE()
+    WHERE code_pcs = @code_pcs
+      AND libelle_pcs <> @nouveau_libelle;
+
+    INSERT INTO dwh.log_etl (etape, table_cible, statut, message)
+    VALUES ('SCD_TYPE3', 'dim_demographie', 'SUCCES',
+        'PCS ' + @code_pcs + ' mis a jour avec Type 3');
+END;
+\end{lstlisting}
+
+
+\normalsize
+
+\subsection{Glossaire}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Terme} & \textbf{Definition} \\
+\hline
+CSV & Comma-Separated Values -- Format de fichier texte pour les donnees tabulaires \\
+\hline
+CDC & Change Data Capture -- Mecanisme de capture des changements dans une base de donnees \\
+\hline
+DWH & Data Warehouse -- Entrepot de donnees \\
+\hline
+ETL & Extract, Transform, Load -- Processus d'extraction, transformation et chargement de donnees \\
+\hline
+ITIL & Information Technology Infrastructure Library -- Referentiel de bonnes pratiques IT \\
+\hline
+KPI & Key Performance Indicator -- Indicateur cle de performance \\
+\hline
+MCO & Maintien en Conditions Operationnelles \\
+\hline
+MERGE & Instruction SQL combinant INSERT et UPDATE en une seule operation \\
+\hline
+RBAC & Role-Based Access Control -- Controle d'acces base sur les roles \\
+\hline
+RLS & Row-Level Security -- Mecanisme SQL Server filtrant les lignes selon l'identite de l'utilisateur, de maniere transparente et non contournable \\
+\hline
+RGPD & Reglement General sur la Protection des Donnees \\
+\hline
+RPO & Recovery Point Objective -- Perte de donnees maximale acceptable \\
+\hline
+RTO & Recovery Time Objective -- Temps de restauration maximal acceptable \\
+\hline
+SCD & Slowly Changing Dimension -- Dimension a evolution lente \\
+\hline
+\end{tabularx}
+\caption{Glossaire des termes techniques}
+\end{table}
+
+\subsection{Arborescence du projet}
+
+\begin{lstlisting}[numbers=none]
+Projet-Data-ENG-E6/
+  Terraform/
+    main.tf                    # Infrastructure Azure + retention backups [E6]
+    adf_linked_services.tf     # Data Factory
+    rbac_configuration.tf      # RBAC Azure
+    variables.tf / outputs.tf
+    sql/
+      001_create_schemas.sql   # 4 schemas (stg, dwh, dm, analytics)
+      002_create_dimensions.sql # 6 dimensions
+      003_create_facts.sql     # 7 tables de faits
+      004_populate_dimensions.sql
+      005_create_datamarts.sql # 5 datamarts + dashboard
+      006_configure_security.sql # [E6] 4 roles RBAC (refonte + suppr. anciens roles)
+      007_configure_performance.sql
+      008_configure_logging.sql  # [E6] log_etl, log_erreurs, vues monitoring
+      009_configure_backup.sql   # [E6] Vues monitoring backups
+      010_scd_dimensions.sql     # [E6] SCD Type 1/2/3, MERGE, vues SCD
+      011_security_rls.sql       # [E6] Schema security, RLS, agences, employes
+      deploy_dwh.py
+  analytics/
+    lib/
+      data_prep.py             # [E6] Fonctions partagees ETL (load_communes, etc.)
+    etl/
+      run_etl.py               # Orchestrateur ETL [E6: logging + backup]
+      load_dimensions.py       # Dimensions + SCD Type 1/2/3 [E6]
+      load_facts.py            # Faits + emploi + menages [E6]
+      backup_to_datalake.py    # [E6] Export BACPAC vers ADLS Gen2
+      load_security.py         # [E6] Chargement agences, employes, zones RLS
+      etl_notifier.py          # [E6] Notifications email (succes + erreur)
+    tests/
+      test_e6_evolution.py     # 10 tests E6 (journalisation, backup, sources, SCD, RBAC)
+  docs/
+    E5_DATA_WAREHOUSE_GUIDE.md
+    E6_MAINTENANCE_METHODOLOGY.md  # [E6] ITIL, incidents, KPIs
+    E6_SCALABILITY_PROCEDURES.md   # [E6] Procedures d'evolution
+  rapports/
+    E6_Evolution_Entrepot/
+      rapport_E6.tex           # Ce rapport
+  uploads/
+    landing/csv/
+      EMPLOI_CHOMAGE_hauts_de_france.csv  # Source emploi [E6]
+      Menage_hauts_de_france.csv          # Source menages [E6]
+\end{lstlisting}
+
+
+\end{document}

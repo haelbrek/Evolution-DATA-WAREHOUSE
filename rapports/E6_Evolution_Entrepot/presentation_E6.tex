@@ -1,0 +1,610 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PRESENTATION E6 - EVOLUTION D'UN ENTREPOT DE DONNEES
+% Soutenance Projet Data Engineering
+% Auteur: Hamza Elbrek | Fevrier 2026
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[aspectratio=169]{beamer}
+
+\usepackage{fontspec}
+\usepackage[french]{babel}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows, positioning, fit}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{multicol}
+
+% ===================== THEME =====================
+\usetheme{Madrid}
+\usecolortheme{default}
+
+\definecolor{azure}{RGB}{0, 112, 192}
+\definecolor{darkblue}{RGB}{0, 51, 102}
+\definecolor{successgreen}{RGB}{39, 174, 96}
+\definecolor{warnorange}{RGB}{230, 126, 34}
+\definecolor{lightgray}{RGB}{245, 245, 245}
+\definecolor{codebg}{RGB}{240, 240, 240}
+
+\setbeamercolor{palette primary}{bg=darkblue, fg=white}
+\setbeamercolor{palette secondary}{bg=azure, fg=white}
+\setbeamercolor{palette tertiary}{bg=azure!80!black, fg=white}
+\setbeamercolor{palette quaternary}{bg=darkblue, fg=white}
+\setbeamercolor{structure}{fg=darkblue}
+\setbeamercolor{title}{fg=white, bg=darkblue}
+\setbeamercolor{frametitle}{fg=white, bg=darkblue}
+\setbeamercolor{block title}{fg=white, bg=azure}
+\setbeamercolor{block body}{fg=black, bg=azure!10}
+\setbeamercolor{block title alerted}{fg=white, bg=warnorange}
+\setbeamercolor{block body alerted}{fg=black, bg=warnorange!10}
+\setbeamercolor{block title example}{fg=white, bg=successgreen!70!black}
+\setbeamercolor{block body example}{fg=black, bg=successgreen!10}
+
+\setbeamerfont{title}{size=\Large, series=\bfseries}
+\setbeamerfont{frametitle}{size=\normalsize, series=\bfseries}
+
+% Supprimer la barre de navigation
+\setbeamertemplate{navigation symbols}{}
+
+% Numerotation des slides
+\setbeamertemplate{footline}{%
+  \leavevmode%
+  \hbox{%
+    \begin{beamercolorbox}[wd=.33\paperwidth,ht=2.25ex,dp=1ex,center]{palette primary}%
+      \usebeamerfont{author in head/foot}\insertshortauthor
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.34\paperwidth,ht=2.25ex,dp=1ex,center]{palette secondary}%
+      \usebeamerfont{title in head/foot}\insertshorttitle
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.33\paperwidth,ht=2.25ex,dp=1ex,right]{palette primary}%
+      \usebeamerfont{date in head/foot}
+      \insertframenumber{} / \inserttotalframenumber\hspace*{2ex}
+    \end{beamercolorbox}}%
+}
+
+% ===================== LISTINGS =====================
+\lstset{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\tiny,
+  breaklines=true,
+  keywordstyle=\color{azure}\bfseries,
+  commentstyle=\color{successgreen!70!black}\itshape,
+  frame=single, framerule=0pt,
+  xleftmargin=0.3cm, xrightmargin=0.3cm,
+}
+
+% ===================== INFOS =====================
+\title[Projet E6 -- Data Warehouse]{%
+  \textbf{Evolution d'un Entrepot de Donnees}\\
+  \normalsize Projet Data Engineering E6 -- Region Hauts-de-France
+}
+\author[H. Elbrek]{Hamza Elbrek}
+\institute[BTS SIO]{RNCP 37638: Expert en données massives}
+\date{Mars 2026}
+
+% ===================== LOGO (optionnel) =====================
+% \logo{\includegraphics[height=0.8cm]{logo.png}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%-------------------------------------------------------
+% SLIDE 1 : TITRE
+%-------------------------------------------------------
+\begin{frame}
+\titlepage
+\vspace{0.3cm}
+\centering
+\small
+\textcolor{azure}{\rule{0.8\textwidth}{0.4pt}}\\[0.3cm]
+\begin{columns}[c]
+  \column{0.5\textwidth}
+  \centering
+  \textbf{Competences visees}\\
+  \small C16 -- Exploiter des donnees\\
+  \small C17 -- Gerer le patrimoine de donnees
+  \column{0.5\textwidth}
+  \centering
+\end{columns}
+\end{frame}
+
+%-------------------------------------------------------
+% SLIDE 2 : PLAN
+%-------------------------------------------------------
+\begin{frame}{Plan de la soutenance}
+\tableofcontents
+\end{frame}
+
+\AtBeginSection[]{
+  \begin{frame}{Sommaire}
+    \tableofcontents[currentsection]
+  \end{frame}
+}
+
+%=======================================================
+\section{Contexte et objectifs}
+%=======================================================
+
+%-------------------------------------------------------
+% SLIDE 3 : DU PROJET E5 AU PROJET E6
+%-------------------------------------------------------
+\begin{frame}{Du projet E5 au projet E6}
+
+\begin{columns}[T]
+  \column{0.48\textwidth}
+  \begin{block}{Projet E5 -- Acquis}
+    \begin{itemize}
+      \item Entrepot Azure SQL deploye via Terraform
+      \item Schema en etoile : 6 dimensions, 5 faits sur 7
+      \item Pipelines ETL Python
+      \item 3 roles RBAC initiaux
+    \end{itemize}
+  \end{block}
+
+  \column{0.48\textwidth}
+  \begin{alertblock}{Limites identifiees}
+    \begin{itemize}
+      \item Pas de journalisation structuree
+      \item Pas de strategie de sauvegarde
+      \item 2 tables de faits manquantes
+      \item Aucune restriction geographique des acces
+    \end{itemize}
+  \end{alertblock}
+\end{columns}
+
+\vspace{0.4cm}
+\begin{exampleblock}{Objectif E6}
+  \centering
+  Faire evoluer l'entrepot vers un \textbf{systeme effectif en conditions reelles} :\\
+  maintenance, securite, historisation, nouvelles sources.
+\end{exampleblock}
+
+\end{frame}
+
+%-------------------------------------------------------
+% SLIDE 4 : INFRASTRUCTURE AZURE
+%-------------------------------------------------------
+\begin{frame}{Infrastructure Azure -- Vue d'ensemble}
+
+\begin{columns}[T]
+  \column{0.52\textwidth}
+  \begin{block}{Ressources provisionnees (Terraform)}
+    \begin{itemize}
+      \item \textbf{Azure SQL Database} -- Data Warehouse
+      \item \textbf{ADLS Gen2} -- Data Lake (raw / curated)
+      \item \textbf{Azure Databricks} -- Traitement Spark
+      \item \textbf{Azure Data Factory} -- Orchestration
+      \item \textbf{Key Vault} -- Gestion des secrets
+      \item \textbf{Log Analytics Workspace} -- Auditing SQL
+    \end{itemize}
+  \end{block}
+
+  \column{0.44\textwidth}
+  \begin{center}
+  \includegraphics[width=\textwidth]{captures/azure_resource_group.png}
+  \end{center}
+\end{columns}
+
+\end{frame}
+
+%=======================================================
+\section{Architecture de l'entrepot}
+%=======================================================
+
+%-------------------------------------------------------
+% SLIDE 5 : SCHEMA EN ETOILE
+%-------------------------------------------------------
+\begin{frame}{Architecture -- Schema en etoile E6}
+
+\begin{columns}[T]
+  \column{0.52\textwidth}
+  \begin{block}{5 schemas fonctionnels}
+    \begin{itemize}
+      \item \texttt{stg} -- Zone de staging (donnees brutes CSV)
+      \item \texttt{dwh} -- Dimensions + Faits (cœur du DWH)
+      \item \texttt{dm} -- Datamarts analytiques (vues materialisees)
+      \item \texttt{analytics} -- Tableaux de bord + monitoring
+      \item \textcolor{warnorange}{\texttt{security}} -- RBAC, RLS, agences, employes \textbf{[E6]}
+    \end{itemize}
+  \end{block}
+
+  \column{0.44\textwidth}
+  \begin{exampleblock}{Nouveautes E6}
+    \small
+    \begin{itemize}
+      \item \textcolor{successgreen}{\texttt{fait\_emploi}} -- Chomage / emploi
+      \item \textcolor{successgreen}{\texttt{fait\_menages}} -- Composition menages
+      \item \textcolor{successgreen}{\texttt{log\_etl}} -- Journalisation ETL
+      \item \textcolor{successgreen}{\texttt{log\_erreurs}} -- Erreurs pipeline
+      \item Schema \textcolor{warnorange}{\texttt{security}} complet
+    \end{itemize}
+  \end{exampleblock}
+\end{columns}
+
+\vspace{0.2cm}
+\centering
+\includegraphics[width=0.6\textwidth]{captures/azure_datawarehouse_schema.png}
+
+\end{frame}
+
+%=======================================================
+\section{Maintenance et journalisation}
+%=======================================================
+
+%-------------------------------------------------------
+% SLIDE 6 : GESTION DES INCIDENTS
+%-------------------------------------------------------
+\begin{frame}{Gestion des incidents -- Processus ITIL}
+
+\begin{columns}[T]
+  \column{0.48\textwidth}
+  \textbf{Workflow en 8 etapes :}
+  \begin{enumerate}
+    \small
+    \item Reception mail $\rightarrow$ creation ticket
+    \item Prise en charge (correctif ou escalade)
+    \item Priorisation manager si necessaire
+    \item Accuse de reception expediteur
+    \item Diagnostic via vues de monitoring
+    \item Resolution et tests
+    \item Notification de cloture
+    \item Archivage backlog
+  \end{enumerate}
+
+  \column{0.48\textwidth}
+  \begin{block}{Matrice de priorisation}
+    \small
+    \begin{tabular}{|l|l|}
+      \hline
+      \textbf{P1 Critique} & Pipeline ETL en erreur \\
+      \hline
+      \textbf{P2 Haute} & Donnees incorrectes \\
+      \hline
+      \textbf{P3 Normale} & Demande evolution \\
+      \hline
+      \textbf{P4 Basse} & Documentation \\
+      \hline
+    \end{tabular}
+  \end{block}
+  \vspace{0.2cm}
+  \begin{alertblock}{Regle cle}
+    \small Aucune demande ne reste sans ticket ouvert.
+  \end{alertblock}
+\end{columns}
+
+\end{frame}
+
+%-------------------------------------------------------
+% SLIDE 7 : JOURNALISATION
+%-------------------------------------------------------
+\begin{frame}{Journalisation -- Double niveau de tracabilite}
+
+\begin{columns}[T]
+  \column{0.44\textwidth}
+  \begin{block}{Niveau 1 -- Logs Python}
+    \small
+    Module \texttt{logging} standard :\\
+    \texttt{INFO}, \texttt{WARNING}, \texttt{ERROR}\\
+    $\rightarrow$ Console + fichier local
+  \end{block}
+  \vspace{0.2cm}
+  \begin{block}{Niveau 2 -- Table SQL}
+    \small
+    \texttt{dwh.log\_etl} enregistre :\\
+    etape, table, statut, duree, nb lignes
+  \end{block}
+  \vspace{0.2cm}
+  \begin{exampleblock}{Notifications email}
+    \small
+    \texttt{etl\_notifier.py} envoie un rapport HTML\\
+    a chaque fin de pipeline (succes ou erreur)
+  \end{exampleblock}
+
+  \column{0.52\textwidth}
+  \includegraphics[width=\textwidth]{captures/azure_log_etl.png}
+  \vspace{0.15cm}
+  \includegraphics[width=\textwidth]{captures/Notifications email automatiques du pipeline ETL.png}
+\end{columns}
+
+\end{frame}
+
+%=======================================================
+\section{Strategie de sauvegarde}
+%=======================================================
+
+%-------------------------------------------------------
+% SLIDE 8 : BACKUP
+%-------------------------------------------------------
+\begin{frame}{Strategie de sauvegarde -- 2 niveaux}
+
+\begin{columns}[T]
+  \column{0.48\textwidth}
+  \begin{block}{Niveau 1 -- PITR Azure (automatique)}
+    \small
+    \begin{itemize}
+      \item Sauvegarde complete + differentielle toutes les 12h
+      \item Retention court terme : \textbf{14 jours}
+      \item Retention long terme : 4 sem / 12 mois / 3 ans
+      \item Restauration a la minute pres (RTO $\approx$ 1h)
+    \end{itemize}
+  \end{block}
+  \vspace{0.2cm}
+  \begin{block}{Niveau 2 -- Export BACPAC (pipeline ETL)}
+    \small
+    \begin{itemize}
+      \item Etape 5 du pipeline ETL
+      \item Export \texttt{.bacpac} horodate vers ADLS Gen2
+      \item Container \texttt{raw/backups/}
+      \item Nettoyage auto des fichiers $>$ 30 jours
+    \end{itemize}
+  \end{block}
+
+  \column{0.48\textwidth}
+  \includegraphics[width=\textwidth]{captures/azure_backup_config.png}
+  \vspace{0.2cm}
+  \includegraphics[width=\textwidth]{captures/azure_datalake_bacpac.png}
+\end{columns}
+
+\end{frame}
+
+%=======================================================
+\section{Securite des acces (RBAC + RLS)}
+%=======================================================
+
+%-------------------------------------------------------
+% SLIDE 9 : RBAC
+%-------------------------------------------------------
+\begin{frame}{Refonte des roles -- RBAC E6}
+
+\begin{columns}[T]
+  \column{0.52\textwidth}
+  \begin{block}{4 roles metier (E6)}
+    \small
+    \begin{tabular}{|l|l|}
+      \hline
+      \texttt{role\_admin} & Controle total \\
+      \hline
+      \texttt{role\_etl\_process} & R/W stg + dwh \\
+      \hline
+      \texttt{role\_analyst} & Lecture dwh/dm/analytics \\
+      \hline
+      \texttt{role\_consultant} & \textbf{Lecture filtree par RLS} \\
+      \hline
+    \end{tabular}
+  \end{block}
+  \vspace{0.2cm}
+  \begin{alertblock}{Changement cle}
+    \small Suppression de \texttt{role\_dwh\_admin} et introduction\\
+    de \texttt{role\_consultant} avec filtrage geographique.
+  \end{alertblock}
+
+  \column{0.44\textwidth}
+  \includegraphics[width=\textwidth]{captures/azure_rbac_roles.png}
+  \vspace{0.2cm}
+  \begin{exampleblock}{Referentiel employes}
+    \small
+    \textbf{519 employes} fictifs generes\\
+    (contrainte RGPD -- pas d'import\\
+    de donnees bancaires reelles sur Azure)
+  \end{exampleblock}
+\end{columns}
+
+\end{frame}
+
+%-------------------------------------------------------
+% SLIDE 10 : RLS
+%-------------------------------------------------------
+\begin{frame}{Row-Level Security -- Filtrage geographique}
+
+\begin{columns}[T]
+  \column{0.52\textwidth}
+  \begin{block}{Architecture RLS}
+    \small
+    \begin{itemize}
+      \item Predicat applique sur \texttt{dwh.dim\_geographie}
+      \item Propagation automatique a toutes les vues \texttt{dm.*} et \texttt{analytics.*}
+      \item Fonction \texttt{security.fn\_rls\_geographie}
+    \end{itemize}
+  \end{block}
+  \vspace{0.2cm}
+  \begin{block}{Hierarchie -- 4 niveaux}
+    \small
+    \begin{tabular}{|l|r|}
+      \hline
+      Directeur Regional & 1 \\
+      \hline
+      Directeurs Departement & 5 \\
+      \hline
+      Directeurs Agence & 101 \\
+      \hline
+      Collaborateurs & 412 \\
+      \hline
+    \end{tabular}
+  \end{block}
+
+  \column{0.44\textwidth}
+  \includegraphics[width=\textwidth]{captures/RLS.png}
+  \vspace{0.2cm}
+  \begin{exampleblock}{101 agences}
+    \small Communes Hauts-de-France\\
+    $>$ 10 000 habitants\\
+    (02, 59, 60, 62, 80)
+  \end{exampleblock}
+\end{columns}
+
+\end{frame}
+
+%=======================================================
+\section{Variations de dimensions (SCD)}
+%=======================================================
+
+%-------------------------------------------------------
+% SLIDE 11 : SCD
+%-------------------------------------------------------
+\begin{frame}{Slowly Changing Dimensions -- 3 types implementes}
+
+\begin{columns}[T]
+  \column{0.32\textwidth}
+  \begin{block}{SCD Type 1}
+    \small \textbf{Ecrasement}\\
+    \vspace{0.1cm}
+    Correction de libelle NAF.\\
+    L'historique est perdu.\\
+    \vspace{0.1cm}
+    $\rightarrow$ \texttt{dim\_activite}
+  \end{block}
+
+  \column{0.32\textwidth}
+  \begin{exampleblock}{SCD Type 2}
+    \small \textbf{Historisation}\\
+    \vspace{0.1cm}
+    Fusion de communes.\\
+    Colonnes \texttt{est\_actif},\\
+    \texttt{version}, \texttt{date\_debut}.\\
+    \vspace{0.1cm}
+    $\rightarrow$ \texttt{dim\_geographie}
+  \end{exampleblock}
+
+  \column{0.32\textwidth}
+  \begin{alertblock}{SCD Type 3}
+    \small \textbf{Colonne precedente}\\
+    \vspace{0.1cm}
+    Renommage categorie PCS.\\
+    1 seul niveau d'historique\\
+    conserve.\\
+    \vspace{0.1cm}
+    $\rightarrow$ \texttt{dim\_demographie}
+  \end{alertblock}
+\end{columns}
+
+\vspace{0.3cm}
+\centering
+\includegraphics[width=0.65\textwidth]{captures/azure_scd_dim_geographie.png}
+
+\end{frame}
+
+%=======================================================
+\section{Bilan et competences}
+%=======================================================
+
+%-------------------------------------------------------
+% SLIDE 12 : BILAN TECHNIQUE
+%-------------------------------------------------------
+\begin{frame}{Bilan technique -- Ce qui a ete realise}
+
+\begin{columns}[T]
+  \column{0.48\textwidth}
+  \textbf{Maintenance \& monitoring}
+  \begin{itemize}
+    \small
+    \item[$\checkmark$] Processus incidents (8 etapes)
+    \item[$\checkmark$] Table \texttt{dwh.log\_etl} + \texttt{log\_erreurs}
+    \item[$\checkmark$] Notifications email automatiques
+    \item[$\checkmark$] Vues analytics de supervision
+  \end{itemize}
+  \vspace{0.2cm}
+  \textbf{Sauvegarde}
+  \begin{itemize}
+    \small
+    \item[$\checkmark$] PITR Azure 14 jours + retention LT
+    \item[$\checkmark$] Export BACPAC vers ADLS Gen2
+    \item[$\checkmark$] Nettoyage automatique
+  \end{itemize}
+
+  \column{0.48\textwidth}
+  \textbf{Securite}
+  \begin{itemize}
+    \small
+    \item[$\checkmark$] 4 roles RBAC metier
+    \item[$\checkmark$] RLS sur \texttt{dwh.dim\_geographie}
+    \item[$\checkmark$] 519 employes / 101 agences charges
+    \item[$\checkmark$] Schema \texttt{security} dedie
+  \end{itemize}
+  \vspace{0.2cm}
+  \textbf{Evolution du modele}
+  \begin{itemize}
+    \small
+    \item[$\checkmark$] 2 nouvelles tables de faits
+    \item[$\checkmark$] SCD Type 1, 2 et 3 implementes
+    \item[$\checkmark$] 7 tables de faits completees
+  \end{itemize}
+\end{columns}
+
+\end{frame}
+
+%-------------------------------------------------------
+% SLIDE 13 : COMPETENCES C16/C17
+%-------------------------------------------------------
+\begin{frame}{Competences visees -- C16 et C17}
+
+\begin{columns}[T]
+  \column{0.48\textwidth}
+  \begin{block}{C16 -- Exploiter des donnees}
+    \small
+    \begin{itemize}
+      \item Integration de nouvelles sources CSV
+      \item Requetage SQL analytique (datamarts)
+      \item Vues de monitoring et supervision
+      \item Row-Level Security sur les consultations
+    \end{itemize}
+  \end{block}
+
+  \column{0.48\textwidth}
+  \begin{block}{C17 -- Gerer le patrimoine de donnees}
+    \small
+    \begin{itemize}
+      \item Politique de sauvegarde et restauration
+      \item Journalisation et tracabilite des ETL
+      \item Gestion des roles et des acces (RBAC)
+      \item Historisation SCD Type 1/2/3
+      \item Procedures de scalabilite documentees
+    \end{itemize}
+  \end{block}
+\end{columns}
+
+\vspace{0.4cm}
+\begin{exampleblock}{Valeur ajoutee}
+  \centering
+  \small
+  Un entrepot de donnees passe de l'\textbf{etat initial E5} a un \textbf{systeme operationnel complet} :\\
+  monitore, securise, sauvegarde et pret a evoluer.
+\end{exampleblock}
+
+\end{frame}
+
+%-------------------------------------------------------
+% SLIDE 14 : CONCLUSION
+%-------------------------------------------------------
+\begin{frame}{Conclusion}
+
+\begin{center}
+\Large\textbf{Merci pour votre attention}
+
+\vspace{0.5cm}
+\textcolor{azure}{\rule{0.6\textwidth}{0.4pt}}
+\vspace{0.5cm}
+
+\normalsize
+\begin{tabular}{ll}
+  \textbf{Auteur}    & Hamza Elbrek \\
+  \textbf{Projet}    & E6 -- Evolution d'un Entrepot de Donnees \\
+  \textbf{Region}    & Hauts-de-France \\
+  \textbf{Stack}     & Azure SQL $\cdot$ Python $\cdot$ Terraform $\cdot$ ADLS Gen2 \\
+  \textbf{Date}      & Fevrier 2026 \\
+\end{tabular}
+
+\vspace{0.5cm}
+\textcolor{azure}{\rule{0.6\textwidth}{0.4pt}}
+
+\vspace{0.4cm}
+\Large \textbf{Questions ?}
+\end{center}
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}

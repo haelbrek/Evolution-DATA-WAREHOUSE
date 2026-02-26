@@ -1,3 +1,4 @@
+
 # Created by https://www.toptal.com/developers/gitignore/api/terraform,python
 # Edit at https://www.toptal.com/developers/gitignore?templates=terraform,python
 
@@ -213,3 +214,17 @@ uploads/
 terraform.rc
 
 # End of https://www.toptal.com/developers/gitignore/api/terraform,python
+
+# LaTeX auxiliary files
+*.aux
+*.log
+*.out
+*.toc
+*.nav
+*.snm
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+
+# ETL debug reports
+analytics/etl/_rapport_*.json

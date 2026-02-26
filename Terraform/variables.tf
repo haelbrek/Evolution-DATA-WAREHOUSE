@@ -156,6 +156,40 @@ variable "databricks_managed_rg_name" {
 }
 
 # ============================================
+# E6 - Notifications email ETL
+# ============================================
+variable "etl_smtp_host" {
+  type        = string
+  description = "Serveur SMTP pour les notifications ETL (ex: smtp.gmail.com)"
+  default     = "smtp.gmail.com"
+}
+
+variable "etl_smtp_port" {
+  type        = string
+  description = "Port SMTP (587 pour TLS, 465 pour SSL)"
+  default     = "587"
+}
+
+variable "etl_smtp_user" {
+  type        = string
+  description = "Adresse email expediteur pour les notifications ETL"
+  default     = ""
+}
+
+variable "etl_smtp_password" {
+  type        = string
+  description = "Mot de passe SMTP (App Password Gmail recommande)"
+  sensitive   = true
+  default     = ""
+}
+
+variable "etl_notify_email" {
+  type        = string
+  description = "Adresse email destinataire des notifications ETL"
+  default     = ""
+}
+
+# ============================================
 # E5 - Data Warehouse
 # ============================================
 variable "deploy_dwh" {

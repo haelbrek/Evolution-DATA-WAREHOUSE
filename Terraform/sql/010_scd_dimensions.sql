@@ -611,18 +611,18 @@ GRANT EXECUTE ON dwh.sp_scd_type3_demographie TO role_etl_process;
 GRANT EXECUTE ON dwh.sp_merge_dim_geographie TO role_etl_process;
 
 -- Les admins aussi
-GRANT EXECUTE ON dwh.sp_scd_type1_activite TO role_dwh_admin;
-GRANT EXECUTE ON dwh.sp_scd_type2_geographie TO role_dwh_admin;
-GRANT EXECUTE ON dwh.sp_scd_type3_demographie TO role_dwh_admin;
-GRANT EXECUTE ON dwh.sp_merge_dim_geographie TO role_dwh_admin;
+GRANT EXECUTE ON dwh.sp_scd_type1_activite TO role_admin;
+GRANT EXECUTE ON dwh.sp_scd_type2_geographie TO role_admin;
+GRANT EXECUTE ON dwh.sp_scd_type3_demographie TO role_admin;
+GRANT EXECUTE ON dwh.sp_merge_dim_geographie TO role_admin;
 
 -- Les analystes peuvent consulter les vues
 GRANT SELECT ON analytics.v_historique_geographie TO role_analyst;
 GRANT SELECT ON analytics.v_changements_pcs TO role_analyst;
 GRANT SELECT ON analytics.v_resume_scd TO role_analyst;
-GRANT SELECT ON analytics.v_historique_geographie TO role_bi_reader;
-GRANT SELECT ON analytics.v_changements_pcs TO role_bi_reader;
-GRANT SELECT ON analytics.v_resume_scd TO role_bi_reader;
+GRANT SELECT ON analytics.v_historique_geographie TO role_consultant;
+GRANT SELECT ON analytics.v_changements_pcs TO role_consultant;
+GRANT SELECT ON analytics.v_resume_scd TO role_consultant;
 
 PRINT '========================================';
 PRINT 'CONFIGURATION SCD DIMENSIONS TERMINEE';

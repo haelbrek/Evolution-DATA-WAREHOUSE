@@ -221,11 +221,11 @@ GRANT EXECUTE ON dwh.sp_log_erreur TO role_etl_process;
 -- Les analystes peuvent consulter les vues de monitoring
 GRANT SELECT ON analytics.v_monitoring_alertes TO role_analyst;
 GRANT SELECT ON analytics.v_erreurs_ouvertes TO role_analyst;
-GRANT SELECT ON analytics.v_monitoring_alertes TO role_bi_reader;
-GRANT SELECT ON analytics.v_erreurs_ouvertes TO role_bi_reader;
+GRANT SELECT ON analytics.v_monitoring_alertes TO role_consultant;
+GRANT SELECT ON analytics.v_erreurs_ouvertes TO role_consultant;
 
 -- Les admins peuvent resoudre les erreurs
-GRANT EXECUTE ON dwh.sp_resoudre_erreur TO role_dwh_admin;
+GRANT EXECUTE ON dwh.sp_resoudre_erreur TO role_admin;
 
 PRINT '========================================';
 PRINT 'CONFIGURATION JOURNALISATION TERMINEE';
